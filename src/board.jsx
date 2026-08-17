@@ -290,6 +290,26 @@ export default function Board() {
     return () => ro.disconnect();
   }, []);
 
+  // Height of the scrollport (<main>) so the desktop detail panel can be
+  // exactly one screen tall and scroll its own content instead of sliding away
+  // with the list. Measured rather than derived from 100dvh, which would
+  // overshoot by the app header.
+  const rootRef = useRef(null);
+  const [scrollportH, setScrollportH] = useState(0);
+  useLayoutEffect(() => {
+    const el = rootRef.current?.parentElement;
+    if (!el) return;
+    const measure = () => setScrollportH(el.clientHeight);
+    measure();
+    if (typeof ResizeObserver === "undefined") {
+      window.addEventListener("resize", measure);
+      return () => window.removeEventListener("resize", measure);
+    }
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   const staleSources = state.sources.filter((s) => daysAgo(s.date) > 7);
 
   const visible = useMemo(() => {
@@ -418,7 +438,8 @@ export default function Board() {
   // containing block, so capping this at one viewport would unstick the
   // toolbar partway down the list. min-h- lets it grow with the content.
   return (
-    <div className="flex min-h-full">
+    <div ref={rootRef} className="flex min-h-full"
+      style={{ "--panelMax": scrollportH ? `${scrollportH}px` : "100dvh" }}>
       <div className="min-w-0 flex-1">
         {/* toolbar */}
         <div ref={toolbarRef} className="sticky top-0 z-20 border-b border-slate-800 bg-slate-950/95 px-2 py-2 backdrop-blur md:px-3">
@@ -589,7 +610,10 @@ export default function Board() {
       {detail && (
         <>
           <div className="fixed inset-0 z-30 bg-black/50 md:hidden" onClick={() => setDetail(null)} />
-          <div className="fixed inset-x-0 bottom-0 z-40 max-h-[85vh] rounded-t-2xl border-t border-slate-700 bg-slate-950 md:static md:z-auto md:max-h-none md:w-[380px] md:shrink-0 md:rounded-none md:border-l md:border-t-0">
+          {/* Desktop: sticky + self-start so it holds its own screenful and
+              scrolls internally while the list moves behind it. Mobile keeps
+              the fixed bottom-sheet treatment. */}
+          <div className="fixed inset-x-0 bottom-0 z-40 max-h-[85vh] rounded-t-2xl border-t border-slate-700 bg-slate-950 md:sticky md:top-0 md:z-auto md:max-h-[var(--panelMax)] md:self-start md:w-[380px] md:shrink-0 md:overflow-y-auto md:rounded-none md:border-l md:border-t-0">
             <DetailPanel id={detail} onClose={() => setDetail(null)} />
           </div>
         </>

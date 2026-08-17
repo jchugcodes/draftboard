@@ -2,6 +2,9 @@ node_modules/
 
 # dist/ is intentionally committed — it is the deploy artifact (see README).
 
+# generated ADP pulls — regenerate with `npm run adp`, they go stale fast
+adp-*.csv
+
 *.log
 npm-debug.log*
 .DS_Store

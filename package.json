@@ -6,6 +6,7 @@
     "build": "esbuild src/main.jsx --bundle --minify --outfile=dist/app.js && tailwindcss -i tw-input.css -o dist/styles.css --minify && node copy-static.mjs",
     "dev": "esbuild src/main.jsx --bundle --outfile=dist/app.js --watch",
     "serve": "npx --yes serve dist -l 4173",
+    "adp": "node fetch-adp.mjs",
     "test": "node test.mjs && node smoke.test.mjs && node smoke2.test.mjs"
   },
   "dependencies": {

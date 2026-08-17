@@ -65,6 +65,28 @@ like `jchugcodes.github.io/draftboard/` is fine. **Bump `SHELL` in
    (notes, handcuff link, situation scorecard, advanced stats, news links).
 6. **Settings → Export board JSON** to move between phone and desktop.
 
+## Getting ADP in
+
+`npm run adp` pulls consensus ADP from the Fantasy Football Calculator public
+API and writes `adp-<format>-<teams>.csv` in the Imports format
+(`name,team,pos,bye,rank`). Load it via **Imports → CSV**.
+
+```bash
+npm run adp                                  # half-PPR, 12-team, current year
+node fetch-adp.mjs --teams=10 --format=ppr
+node fetch-adp.mjs --year=2025 --out=last-year.csv
+```
+
+Formats: `half-ppr`, `ppr`, `standard`, `2qb`, `dynasty`, `rookie`.
+
+It runs locally rather than in the app because the API sends no CORS headers.
+Output is gitignored — it goes stale, so re-run it rather than committing it.
+
+FFC is consensus ADP, not Yahoo, so it won't populate the "Y vs mkt" column on
+its own; that needs a source named exactly `Yahoo`. Note that most ranking sites
+(FantasyPros, ESPN, Yahoo, CBS) forbid scraping in their terms — use their
+official APIs or a manual export instead.
+
 ## Name matching
 
 Imports are fuzzy-matched (bigram similarity, suffix-stripped) against the

@@ -414,8 +414,11 @@ export default function Board() {
 
   let lastTier = 0;
 
+  // min-h-full, not h-full: a sticky child can only travel inside its
+  // containing block, so capping this at one viewport would unstick the
+  // toolbar partway down the list. min-h- lets it grow with the content.
   return (
-    <div className="flex h-full">
+    <div className="flex min-h-full">
       <div className="min-w-0 flex-1">
         {/* toolbar */}
         <div ref={toolbarRef} className="sticky top-0 z-20 border-b border-slate-800 bg-slate-950/95 px-2 py-2 backdrop-blur md:px-3">

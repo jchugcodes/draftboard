@@ -1,0 +1,9 @@
+node_modules/
+
+# dist/ is intentionally committed — it is the deploy artifact (see README).
+
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+.meta.json

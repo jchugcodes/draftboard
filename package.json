@@ -1,0 +1,20 @@
+{
+  "name": "draftboard",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "build": "esbuild src/main.jsx --bundle --minify --outfile=dist/app.js && tailwindcss -i tw-input.css -o dist/styles.css --minify && node copy-static.mjs",
+    "dev": "esbuild src/main.jsx --bundle --outfile=dist/app.js --watch",
+    "serve": "npx --yes serve dist -l 4173",
+    "test": "node test.mjs && node smoke.test.mjs && node smoke2.test.mjs"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "jsdom": "^30.0.1",
+    "tailwindcss": "^3.4.19"
+  }
+}

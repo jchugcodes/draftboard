@@ -1,0 +1,15 @@
+{
+  "name": "DraftBoard — half-PPR rankings builder",
+  "short_name": "DraftBoard",
+  "description": "Build and refine your fantasy football rankings before the draft.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#020617",
+  "theme_color": "#020617",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

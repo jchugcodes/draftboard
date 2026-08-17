@@ -451,7 +451,11 @@ export default function Board() {
         </div>
 
         {/* -------- desktop table -------- */}
-        <div className="hidden overflow-x-auto md:block">
+        {/* No overflow-x here: it would become a scroll container in both axes
+            (overflow-x:auto forces overflow-y to auto), and the sticky thead
+            would anchor to it instead of <main>, pinning below the top of the
+            table and covering the first rows. Wide boards scroll on <main>. */}
+        <div className="hidden md:block">
           <table className="w-full border-collapse text-sm">
             <thead className="sticky z-10 bg-slate-950" style={{ top: toolbarH }}>
               <tr className="border-b border-slate-800">

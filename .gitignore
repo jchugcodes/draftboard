@@ -5,8 +5,13 @@ node_modules/
 # generated ADP pulls — regenerate with `npm run adp`, they go stale fast
 adp-*.csv
 
-# nflverse stats downloads — large, re-fetchable from the nflverse-data release
+# nflverse downloads — large, re-fetchable from the nflverse-data releases
 stats_player_week_*.csv
+stats_team_week_*.csv
+games.csv
+
+# generated situation ratings — rebuild with `npm run situation`
+situation-*.json
 
 *.log
 npm-debug.log*

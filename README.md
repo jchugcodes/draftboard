@@ -87,6 +87,37 @@ its own; that needs a source named exactly `Yahoo`. Note that most ranking sites
 (FantasyPros, ESPN, Yahoo, CBS) forbid scraping in their terms — use their
 official APIs or a manual export instead.
 
+## Situation scorecards
+
+`npm run situation` builds per-team scorecard ratings from nflverse open data and
+writes `situation-<season>.json`. Load it via **Imports → Situation scorecards**.
+
+```bash
+npm run situation                       # SOS for the current year
+node fetch-situation.mjs --season=2027
+node fetch-situation.mjs --keep         # keep the downloaded CSVs
+```
+
+Each metric is ranked across the 32 teams and split into even quintiles, so a 5
+means top-six-in-the-league rather than an absolute cutoff.
+
+| Field | Derived from |
+| --- | --- |
+| Offense | team EPA per play |
+| QB quality | pass EPA per dropback, nudged by CPOE |
+| OL pass block | sack rate allowed (inverted) |
+| OL run block | rush EPA per carry |
+| Pace | offensive plays per game |
+| SOS season / wk 15–17 | upcoming schedule × opponents' EPA allowed |
+| Target competition | the player's own target share (needs an nflverse stats load) |
+
+Coach/scheme is never auto-filled — there is no honest statistical proxy for it.
+
+**Team quality comes from the last completed season**, so it cannot see coaching
+changes, roster moves, or a QB who switched teams; only SOS is grounded in the
+upcoming schedule. Applying overwrites those seven sliders, sets the card to
+"not projected", and leaves any grade note you wrote intact.
+
 ## Name matching
 
 Imports are fuzzy-matched (bigram similarity, suffix-stripped) against the

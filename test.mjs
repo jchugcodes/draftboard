@@ -1,5 +1,5 @@
 import { parseCSV, mapHeaders, parsePastedList, normName, similarity, findCandidates, playerKey, normTeam, migrateTierBreaks } from "./src/util.js";
-import { scoreProjection, DEFAULT_SCORING, replacementLevels, suggestTierBreaks, stddev } from "./src/compute.js";
+import { scoreProjection, DEFAULT_SCORING, replacementLevels, suggestTierBreaks, stddev, quintileRatings, targetCompRating } from "./src/compute.js";
 import { aggregateNflverse, computeVacated } from "./src/fetchers.js";
 let fails = 0;
 const ok = (cond, msg) => { if (!cond) { fails++; console.log("FAIL:", msg); } };
@@ -45,6 +45,20 @@ ok(Math.abs(stddev([2, 4, 4, 4, 5, 5, 7, 9]) - 2.138) < 0.01, "stddev");
 const runt = [1, 2, 3, 4, 5, 6, 7, 8, 40].map((v, i) => ({ id: i, value: v }));
 const rb = suggestTierBreaks(runt, 2, 4);
 ok(rb.every((b) => runt.length - b >= 4), "no runt final tier " + JSON.stringify(rb));
+
+// situation ratings: even quintiles, and direction respected
+const tenTeams = {}; for (let i = 0; i < 10; i++) tenTeams["T" + i] = i; // 0 worst .. 9 best
+const hi = quintileRatings(tenTeams, true);
+ok(hi.T0 === 1 && hi.T9 === 5, "quintile higher-is-better " + JSON.stringify([hi.T0, hi.T9]));
+const lo = quintileRatings(tenTeams, false);
+ok(lo.T0 === 5 && lo.T9 === 1, "quintile lower-is-better " + JSON.stringify([lo.T0, lo.T9]));
+const spread = {}; for (const v of Object.values(hi)) spread[v] = (spread[v] || 0) + 1;
+ok(Object.keys(spread).length === 5 && Object.values(spread).every((c) => c === 2), "quintiles even " + JSON.stringify(spread));
+ok(Object.keys(quintileRatings({ A: null, B: undefined })).length === 0, "quintile ignores non-numbers");
+
+ok(targetCompRating(0.30) === 5 && targetCompRating(0.05) === 1, "targetComp extremes");
+ok(targetCompRating(0.155) === 3, "targetComp mid");
+ok(targetCompRating(undefined) === null, "targetComp needs a number");
 
 // tierBreaks migrated from the old flat-array shape to per-scope
 ok(JSON.stringify(migrateTierBreaks({ tierBreaks: [3, 7] }).tierBreaks) === '{"all":[3,7]}', "migrate flat tierBreaks");

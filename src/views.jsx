@@ -126,6 +126,21 @@ export function ImportsView() {
     rd.readAsText(f);
   };
 
+  const loadSituation = (f) => {
+    const rd = new FileReader();
+    rd.onload = () => {
+      try {
+        const data = JSON.parse(String(rd.result));
+        if (data.app !== "draftboard-situation" || !data.teams) throw new Error("not a situation file");
+        const n = Object.keys(data.teams).length;
+        if (!n) throw new Error("no teams in file");
+        dispatch({ type: "APPLY_SITUATION", teams: data.teams, meta: { statsSeason: data.statsSeason, scheduleSeason: data.scheduleSeason } });
+        setMsg(`Situation ratings applied from ${n} teams (${data.statsSeason} data, SOS ${data.scheduleSeason}).`);
+      } catch (e) { setMsg("Situation file failed: " + e.message); }
+    };
+    rd.readAsText(f);
+  };
+
   const lastSeason = new Date().getFullYear() - 1;
 
   return (
@@ -197,6 +212,30 @@ export function ImportsView() {
         </div>
         <p className="mt-2 text-[11px] text-slate-500">
           Sleeper feeds injury status + trending adds/drops on the board. nflverse feeds the advanced-stats panel (target share, WOPR, aDOT, snap context) and vacated-opportunity math. Sync Sleeper first — vacated opportunity compares last-season teams against current rosters.
+        </p>
+      </section>
+
+      <section className={card}>
+        <h2 className={h2}>Situation scorecards</h2>
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <label className="text-xs text-slate-400">
+            Load situation JSON: <input type="file" accept=".json" className="text-xs"
+              onChange={(e) => e.target.files[0] && loadSituation(e.target.files[0])} />
+          </label>
+          {state.situation && (
+            <span className="text-xs text-emerald-400">
+              ✓ {state.situation.applied} players · {state.situation.statsSeason} data · SOS {state.situation.scheduleSeason}
+            </span>
+          )}
+        </div>
+        <p className="mt-2 text-[11px] text-slate-500">
+          Generate with <code className="text-slate-400">node fetch-situation.mjs</code>. Fills offense, QB, OL run/pass,
+          pace, target competition, and both SOS fields for every player whose team is known. Coach/scheme is never
+          auto-filled — it has no statistical basis. Existing grade notes are kept.
+        </p>
+        <p className="mt-1 text-[11px] text-amber-300/80">
+          Team quality reflects the last completed season, so it cannot see coaching changes, roster moves, or a QB who
+          switched teams. Only SOS is grounded in the upcoming schedule. Applying overwrites those seven sliders.
         </p>
       </section>
 

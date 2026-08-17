@@ -7,6 +7,7 @@
     "dev": "esbuild src/main.jsx --bundle --outfile=dist/app.js --watch",
     "serve": "npx --yes serve dist -l 4173",
     "adp": "node fetch-adp.mjs",
+    "situation": "node fetch-situation.mjs",
     "test": "node test.mjs && node smoke.test.mjs && node smoke2.test.mjs"
   },
   "dependencies": {

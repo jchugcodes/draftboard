@@ -1,6 +1,6 @@
 // DraftBoard service worker — app shell cache-first, Sleeper API stale-while-revalidate.
 // Bump SHELL on every deploy so installed clients pick up the new build.
-const SHELL = "draftboard-shell-msxkvthj";
+const SHELL = "draftboard-shell-msxnl4o7";
 const DATA = "draftboard-data-v1";
 const ASSETS = ["./", "./index.html", "./app.js", "./styles.css", "./manifest.webmanifest", "./icons/icon.svg", "./icons/icon-192.png", "./icons/icon-512.png"];
 

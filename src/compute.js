@@ -132,6 +132,32 @@ export function suggestTierBreaks(items, k = 3, minTierSize = 4) {
   return breaks; // indices where a new tier starts
 }
 
+// ---------- situation ratings ----------
+// Scorecard sliders are 1-5, so raw metrics get ranked against their peers and
+// split into even quintiles. Rank rather than absolute thresholds: EPA scales
+// shift year to year, but "bottom five offenses in the league" does not.
+// higherIsBetter=false for metrics where low is good (sack rate, SOS difficulty).
+export function quintileRatings(map, higherIsBetter = true) {
+  const entries = Object.entries(map).filter(([, v]) => Number.isFinite(v));
+  if (!entries.length) return {};
+  const sorted = entries.slice().sort((a, b) => (higherIsBetter ? a[1] - b[1] : b[1] - a[1]));
+  const out = {};
+  sorted.forEach(([k], i) => { out[k] = Math.min(5, Math.floor((i / sorted.length) * 5) + 1); });
+  return out;
+}
+
+// Target competition for pass catchers: a player's own share of team targets is
+// the inverse of how many mouths he competes with. Absolute thresholds here on
+// purpose - a 25% target share means the same thing in any season.
+export function targetCompRating(tgtShare) {
+  if (!Number.isFinite(tgtShare)) return null;
+  if (tgtShare >= 0.25) return 5;
+  if (tgtShare >= 0.20) return 4;
+  if (tgtShare >= 0.15) return 3;
+  if (tgtShare >= 0.10) return 2;
+  return 1;
+}
+
 // ---------- derived board metrics ----------
 // Builds the full computed row set used by both table and cards.
 export function computeBoard(state) {

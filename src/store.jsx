@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useReducer } from "react";
 import { uid, playerKey, normName, normTeam, findCandidates, similarity, migrateTierBreaks } from "./util.js";
-import { DEFAULT_SCORING, DEFAULT_ROSTER } from "./compute.js";
+import { DEFAULT_SCORING, DEFAULT_ROSTER, targetCompRating } from "./compute.js";
 
 const LS_KEY = "draftboard-v1";
 
@@ -188,6 +188,30 @@ function reducer(state, action) {
       return draft;
     }
     case "VACATED": draft.vacated = action.vacated; return draft;
+
+    // Apply generated per-team situation ratings (see fetch-situation.mjs) to
+    // every player's scorecard. Only the derived fields are touched: "scheme"
+    // has no statistical basis and an existing grade note is left alone.
+    case "APPLY_SITUATION": {
+      const { teams, meta } = action;
+      let applied = 0, missing = 0;
+      for (const p of Object.values(draft.players)) {
+        const t = p.team ? teams[p.team] : null;
+        if (!t) { missing++; continue; }
+        const patch = { ...t };
+        const tc = targetCompRating(p.nfl?.tgtShare);
+        if (tc != null) patch.targetComp = tc;
+        p.scorecard = {
+          ...p.scorecard,
+          ...patch,
+          projected: false,
+          note: p.scorecard?.note || `auto: ${meta.statsSeason} team data, SOS ${meta.scheduleSeason}`,
+        };
+        applied++;
+      }
+      draft.situation = { ...meta, applied, missing, at: new Date().toISOString() };
+      return draft;
+    }
 
     case "IMPORT_BOARD": return { ...migrateTierBreaks(action.state), ui: draft.ui };
     case "RESET": return structuredClone(initialState);

@@ -109,7 +109,10 @@ export function stddev(xs) {
 // ---------- tier suggestion ----------
 // items: [{id, value}] sorted ascending by value (consensus rank or points gap basis).
 // Break where the gap to the next item exceeds mean gap + k·σ of gaps.
-export function suggestTierBreaks(items, k = 2, minTierSize = 2) {
+// Defaults are tuned for a full board (~200+ players): k=2/min=2 cut ~47 tiers
+// out of 222 players, which is far finer than anyone drafts off. k=3/min=4
+// lands around 16.
+export function suggestTierBreaks(items, k = 3, minTierSize = 4) {
   if (items.length < 4) return [];
   const gaps = [];
   for (let i = 0; i < items.length - 1; i++) gaps.push(items[i + 1].value - items[i].value);
@@ -123,6 +126,9 @@ export function suggestTierBreaks(items, k = 2, minTierSize = 2) {
   for (let i = 0; i < gaps.length; i++) {
     if (gaps[i] > thresh && i + 1 - last >= minTierSize) { breaks.push(i + 1); last = i + 1; }
   }
+  // minTierSize only guards the distance since the previous break, so the final
+  // tier can still come out as a runt. Merge it back into the one above.
+  if (breaks.length && items.length - breaks[breaks.length - 1] < minTierSize) breaks.pop();
   return breaks; // indices where a new tier starts
 }
 

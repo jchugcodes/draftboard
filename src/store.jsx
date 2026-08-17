@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useReducer } from "react";
-import { uid, playerKey, normName, normTeam, findCandidates, similarity } from "./util.js";
+import { uid, playerKey, normName, normTeam, findCandidates, similarity, migrateTierBreaks } from "./util.js";
 import { DEFAULT_SCORING, DEFAULT_ROSTER } from "./compute.js";
 
 const LS_KEY = "draftboard-v1";
@@ -23,7 +23,11 @@ const initialState = {
   },
   players: {},   // id -> {id, name, pos, team, bye, tags:[], notes, handcuffOf, scorecard, sleeper:{}, nfl:{}}
   myRanks: [],   // ordered player ids
-  tierBreaks: [],// indices in myRanks where a new tier starts
+  // Tier breaks are scoped to the view you cut them in: "all" for the unfiltered
+  // board, or a position key. Values are indices into that scope's ordered list
+  // (myRanks, or myRanks filtered to the position), so a position's tiers stay
+  // put instead of inheriting cuts from the overall order.
+  tierBreaks: { all: [] },
   sources: [],   // {id, name, type: 'ranks'|'adp'|'proj', date, map:{playerId:number}, stats?:{playerId:{...}}}
   mergeQueue: [],// [{srcId, name, team, pos, value, stats?, candidates:[{id,score}]}]
   trending: { adds: [], drops: [], at: null },
@@ -77,7 +81,7 @@ function applyImport(draft, { name, srcType: type, rows, stats }) {
 function reducer(state, action) {
   const draft = structuredClone(state);
   switch (action.type) {
-    case "HYDRATE": return { ...initialState, ...action.state, ui: { ...initialState.ui, ...(action.state.ui || {}) } };
+    case "HYDRATE": return migrateTierBreaks({ ...initialState, ...action.state, ui: { ...initialState.ui, ...(action.state.ui || {}) } });
     case "SET_TAB": draft.ui.tab = action.tab; return draft;
     case "SET_SETTINGS": draft.settings = { ...draft.settings, ...action.patch }; return draft;
     case "SET_ROSTER": draft.settings.roster = { ...draft.settings.roster, ...action.patch }; return draft;
@@ -127,12 +131,18 @@ function reducer(state, action) {
       draft.myRanks = order;
       return draft;
     }
-    case "SET_TIER_BREAKS": draft.tierBreaks = [...new Set(action.breaks)].sort((a, b) => a - b); return draft;
+    case "SET_TIER_BREAKS": {
+      const scope = action.scope || "all";
+      draft.tierBreaks[scope] = [...new Set(action.breaks)].sort((a, b) => a - b);
+      return draft;
+    }
     case "TOGGLE_TIER_BREAK": {
+      const scope = action.scope || "all";
       const i = action.index;
-      draft.tierBreaks = draft.tierBreaks.includes(i)
-        ? draft.tierBreaks.filter((x) => x !== i)
-        : [...draft.tierBreaks, i].sort((a, b) => a - b);
+      const cur = draft.tierBreaks[scope] ?? [];
+      draft.tierBreaks[scope] = cur.includes(i)
+        ? cur.filter((x) => x !== i)
+        : [...cur, i].sort((a, b) => a - b);
       return draft;
     }
 
@@ -179,7 +189,7 @@ function reducer(state, action) {
     }
     case "VACATED": draft.vacated = action.vacated; return draft;
 
-    case "IMPORT_BOARD": return { ...action.state, ui: draft.ui };
+    case "IMPORT_BOARD": return { ...migrateTierBreaks(action.state), ui: draft.ui };
     case "RESET": return structuredClone(initialState);
     default: return state;
   }
@@ -190,7 +200,7 @@ export function StoreProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, initialState, (init) => {
     try {
       const raw = localStorage.getItem(LS_KEY);
-      if (raw) return { ...init, ...JSON.parse(raw) };
+      if (raw) return migrateTierBreaks({ ...init, ...JSON.parse(raw) });
     } catch (e) { console.warn("load failed", e); }
     return init;
   });

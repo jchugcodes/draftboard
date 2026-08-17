@@ -331,6 +331,18 @@ export default function Board() {
 
   const showTiers = sortKey === "my";
 
+  // Tiers belong to the view you cut them in. Indices are positions within the
+  // scope's own ordered list, so filtering to RB shows RB tiers rather than
+  // whatever the overall board happened to cut across those players. Search and
+  // tag filters deliberately do not scope tiers - they hide rows, they don't
+  // redefine the list.
+  const tierScope = posFilter || "all";
+  const scopeOrder = useMemo(
+    () => (posFilter ? state.myRanks.filter((id) => state.players[id]?.pos === posFilter) : state.myRanks),
+    [state.myRanks, state.players, posFilter]
+  );
+  const scopeBreaks = state.tierBreaks?.[tierScope] ?? [];
+
   // ---------- keyboard ----------
   useEffect(() => {
     const onKey = (e) => {
@@ -354,8 +366,8 @@ export default function Board() {
       else if (e.key === "Enter" && selected) setDetail(selected);
       else if (e.key === "Escape") setDetail(null);
       else if (e.key === "t" && selected && showTiers) {
-        const i = state.myRanks.indexOf(selected);
-        if (i > 0) dispatch({ type: "TOGGLE_TIER_BREAK", index: i });
+        const i = scopeOrder.indexOf(selected);
+        if (i > 0) dispatch({ type: "TOGGLE_TIER_BREAK", scope: tierScope, index: i });
       } else {
         const t = TAGS.find((x) => x.num === e.key);
         if (t && selected) dispatch({ type: "TOGGLE_TAG", id: selected, tag: t.key });
@@ -363,7 +375,7 @@ export default function Board() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [visible, selected, showTiers, state.myRanks, dispatch]);
+  }, [visible, selected, showTiers, state.myRanks, scopeOrder, tierScope, dispatch]);
 
   // ---------- drag & drop ----------
   const onDragStart = (e, id, kind) => {
@@ -378,20 +390,23 @@ export default function Board() {
     if (to < 0) return;
     if (d.kind === "player" && d.id !== targetId) dispatch({ type: "REORDER", id: d.id, to });
     if (d.kind === "tier") {
-      const breaks = state.tierBreaks.filter((b) => b !== d.id);
-      dispatch({ type: "SET_TIER_BREAKS", breaks: [...breaks, to] });
+      const at = scopeOrder.indexOf(targetId);
+      if (at > 0) {
+        const breaks = scopeBreaks.filter((b) => b !== d.id);
+        dispatch({ type: "SET_TIER_BREAKS", scope: tierScope, breaks: [...breaks, at] });
+      }
     }
     dragItem.current = null;
   };
 
   const autoTiers = () => {
-    const items = state.myRanks
+    const items = scopeOrder
       .map((id) => ({ id, value: board.rows.find((r) => r.id === id)?.consensus }))
       .filter((x) => x.value != null);
     const breaks = suggestTierBreaks(items);
-    // map break positions (in the consensus-known subset) back to myRanks indices
-    const idxBreaks = breaks.map((b) => state.myRanks.indexOf(items[b].id)).filter((i) => i > 0);
-    dispatch({ type: "SET_TIER_BREAKS", breaks: idxBreaks });
+    // map break positions (in the consensus-known subset) back to scope indices
+    const idxBreaks = breaks.map((b) => scopeOrder.indexOf(items[b].id)).filter((i) => i > 0);
+    dispatch({ type: "SET_TIER_BREAKS", scope: tierScope, breaks: idxBreaks });
   };
 
   const startFromConsensus = () => {
@@ -465,7 +480,17 @@ export default function Board() {
               </button>
             ))}
             <span className="grow" />
-            <button onClick={autoTiers} className="rounded border border-slate-700 px-2 py-1 text-xs text-slate-300 hover:border-sky-500">Suggest tiers</button>
+            <button onClick={autoTiers} title={`Cut tiers on consensus gaps within ${posFilter || "the full board"}`}
+              className="rounded border border-slate-700 px-2 py-1 text-xs text-slate-300 hover:border-sky-500">
+              Suggest {posFilter ? `${posFilter} ` : ""}tiers
+            </button>
+            {scopeBreaks.length > 0 && (
+              <button onClick={() => dispatch({ type: "SET_TIER_BREAKS", scope: tierScope, breaks: [] })}
+                title={`Remove the ${scopeBreaks.length} tier break${scopeBreaks.length > 1 ? "s" : ""} in ${posFilter || "the full board"} (other views keep theirs)`}
+                className="rounded border border-slate-700 px-2 py-1 text-xs text-slate-300 hover:border-rose-500 hover:text-rose-300">
+                Clear {posFilter ? `${posFilter} ` : ""}tiers
+              </button>
+            )}
             <button onClick={startFromConsensus} title="Reorder my ranks to consensus"
               className="rounded border border-slate-700 px-2 py-1 text-xs text-slate-300 hover:border-sky-500">→ consensus order</button>
           </div>
@@ -501,21 +526,31 @@ export default function Board() {
             </thead>
             <tbody>
               {visible.map((r) => {
-                const i = state.myRanks.indexOf(r.id);
-                const tier = tierOfIndex(i, state.tierBreaks);
+                const i = scopeOrder.indexOf(r.id);
+                const tier = tierOfIndex(i, scopeBreaks);
                 const header = showTiers && tier !== lastTier;
                 if (header) lastTier = tier;
+                const breakIdx = header ? scopeBreaks.find((b) => tierOfIndex(b, scopeBreaks) === tier) : undefined;
                 const ps = posStyle(r.p.pos);
                 const sel = selected === r.id;
                 return (
                   <React.Fragment key={r.id}>
                     {header && (
                       <tr draggable={tier > 1}
-                        onDragStart={(e) => onDragStart(e, state.tierBreaks.find((b) => tierOfIndex(b, state.tierBreaks) === tier) ?? 0, "tier")}
+                        onDragStart={(e) => onDragStart(e, breakIdx ?? 0, "tier")}
                         onDragOver={(e) => e.preventDefault()} onDrop={(e) => onDropRow(e, r.id)}
-                        className="cursor-grab select-none bg-slate-900/80">
+                        className="group cursor-grab select-none bg-slate-900/80">
                         <td colSpan={11 + sourceCols.length} className="border-y border-slate-700/60 px-2 py-1 text-[11px] font-bold uppercase tracking-widest text-slate-400">
-                          ⠿ Tier {tier}
+                          <div className="flex items-center gap-2">
+                            <span>⠿ Tier {tier}</span>
+                            {breakIdx !== undefined && (
+                              <button draggable={false} title="Delete this tier break (merges into the tier above)"
+                                onClick={(e) => { e.stopPropagation(); dispatch({ type: "TOGGLE_TIER_BREAK", scope: tierScope, index: breakIdx }); }}
+                                className="rounded px-1 leading-none text-slate-600 opacity-0 transition hover:bg-slate-800 hover:text-rose-300 focus:opacity-100 group-hover:opacity-100">
+                                ✕
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     )}
@@ -555,7 +590,7 @@ export default function Board() {
             </tbody>
           </table>
           <div className="px-3 py-2 text-[11px] text-slate-600">
-            Keys: ↑↓ move selection · shift+↑↓ or [ ] re-rank · / search · 1–5 tags · t tier break · enter detail. Drag rows to reorder; drag ⠿ tier bars to move a cliff.
+            Keys: ↑↓ move selection · shift+↑↓ or [ ] re-rank · / search · 1–5 tags · t add/remove a tier break above the selected row · enter detail. Drag rows to reorder; drag ⠿ tier bars to move a cliff; ✕ on a tier bar deletes it.
             {!board.hasProj && " Pts≈ uses a generic curve — import a projections CSV for scoring-aware values."}
           </div>
         </div>
@@ -564,16 +599,26 @@ export default function Board() {
         <div className="md:hidden">
           {(() => { lastTier = 0; return null; })()}
           {visible.map((r) => {
-            const i = state.myRanks.indexOf(r.id);
-            const tier = tierOfIndex(i, state.tierBreaks);
+            const i = scopeOrder.indexOf(r.id);
+            const tier = tierOfIndex(i, scopeBreaks);
             const header = showTiers && tier !== lastTier;
             if (header) lastTier = tier;
+            const breakIdx = header ? scopeBreaks.find((b) => tierOfIndex(b, scopeBreaks) === tier) : undefined;
             const ps = posStyle(r.p.pos);
             return (
               <React.Fragment key={r.id}>
                 {header && (
                   <div className="sticky z-10 border-y border-slate-700/60 bg-slate-900 px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-slate-400" style={{ top: toolbarH }}>
-                    Tier {tier}
+                    <div className="flex items-center justify-between">
+                      <span>Tier {tier}</span>
+                      {breakIdx !== undefined && (
+                        <button title="Delete this tier break"
+                          onClick={(e) => { e.stopPropagation(); dispatch({ type: "TOGGLE_TIER_BREAK", scope: tierScope, index: breakIdx }); }}
+                          className="-my-1 rounded px-2 py-1 text-slate-500 active:text-rose-300">
+                          ✕
+                        </button>
+                      )}
+                    </div>
                   </div>
                 )}
                 <div onTouchStart={(e) => onTouchStart(e, r.id)} onTouchEnd={(e) => onTouchEnd(e, r.id)}

@@ -1,4 +1,4 @@
-import { parseCSV, mapHeaders, parsePastedList, normName, similarity, findCandidates, playerKey, normTeam } from "./src/util.js";
+import { parseCSV, mapHeaders, parsePastedList, normName, similarity, findCandidates, playerKey, normTeam, migrateTierBreaks } from "./src/util.js";
 import { scoreProjection, DEFAULT_SCORING, replacementLevels, suggestTierBreaks, stddev } from "./src/compute.js";
 import { aggregateNflverse, computeVacated } from "./src/fetchers.js";
 let fails = 0;
@@ -36,10 +36,20 @@ ok(flexTotal === 12, "flex seats allocated: " + flexTotal + " " + JSON.stringify
 ok(replacement.RB < 320 && replacement.RB > 0, "RB repl pts");
 
 const items = [1, 2, 3, 9, 10, 11, 25, 26].map((v, i) => ({ id: i, value: v }));
-const br = suggestTierBreaks(items, 1.0);
+const br = suggestTierBreaks(items, 1.0, 2); // minTierSize explicit: this fixture is 8 items
 ok(br.includes(3) && br.includes(6), "tier breaks " + JSON.stringify(br));
 
 ok(Math.abs(stddev([2, 4, 4, 4, 5, 5, 7, 9]) - 2.138) < 0.01, "stddev");
+
+// suggestTierBreaks must not leave a runt final tier
+const runt = [1, 2, 3, 4, 5, 6, 7, 8, 40].map((v, i) => ({ id: i, value: v }));
+const rb = suggestTierBreaks(runt, 2, 4);
+ok(rb.every((b) => runt.length - b >= 4), "no runt final tier " + JSON.stringify(rb));
+
+// tierBreaks migrated from the old flat-array shape to per-scope
+ok(JSON.stringify(migrateTierBreaks({ tierBreaks: [3, 7] }).tierBreaks) === '{"all":[3,7]}', "migrate flat tierBreaks");
+ok(JSON.stringify(migrateTierBreaks({ tierBreaks: { RB: [2] } }).tierBreaks) === '{"RB":[2]}', "scoped tierBreaks pass through");
+ok(JSON.stringify(migrateTierBreaks({}).tierBreaks) === '{"all":[]}', "missing tierBreaks defaulted");
 
 const nfl = `player_display_name,position,team,season_type,targets,receptions,receiving_yards,receiving_tds,receiving_air_yards,carries,rushing_yards,rushing_tds,passing_yards,passing_tds,attempts,sacks_suffered,fantasy_points_ppr
 Amon-Ra St. Brown,WR,DET,REG,10,8,90,1,80,0,0,0,0,0,0,0,25

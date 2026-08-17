@@ -37,6 +37,18 @@ export const normTeam = (t) => {
   return TEAM_ALIASES[u] || (NFL_TEAMS.includes(u) ? u : u);
 };
 
+// ---------- persisted-state migrations ----------
+// tierBreaks used to be a flat index array over the whole board. Saved boards
+// and exported JSON from before tiers became per-position still carry that
+// shape; normalize them to {scope: indices}.
+export function migrateTierBreaks(s) {
+  if (!s || typeof s !== "object") return s;
+  const tb = s.tierBreaks;
+  if (Array.isArray(tb)) return { ...s, tierBreaks: { all: tb } };
+  if (!tb || typeof tb !== "object") return { ...s, tierBreaks: { all: [] } };
+  return s;
+}
+
 // ---------- name normalization + fuzzy matching ----------
 const SUFFIXES = new Set(["jr", "sr", "ii", "iii", "iv", "v"]);
 export function normName(name) {

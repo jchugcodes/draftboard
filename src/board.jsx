@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useStore } from "./store.jsx";
 import { computeBoard, suggestTierBreaks } from "./compute.js";
 import { POS_STYLE, POSITIONS, TAGS, fmt, pct, daysAgo } from "./util.js";
@@ -270,6 +270,26 @@ export default function Board() {
   const searchRef = useRef(null);
   const dragItem = useRef(null);
 
+  // The toolbar is sticky and its height is not fixed — the filter row wraps at
+  // narrow widths, and the stale-source banner and "sorted by column" note each
+  // add a line. Anything sticking below it has to measure rather than assume, or
+  // the header pins too high and the first rows slide under the toolbar.
+  const toolbarRef = useRef(null);
+  const [toolbarH, setToolbarH] = useState(49);
+  useLayoutEffect(() => {
+    const el = toolbarRef.current;
+    if (!el) return;
+    const measure = () => setToolbarH(el.getBoundingClientRect().height);
+    measure();
+    if (typeof ResizeObserver === "undefined") {
+      window.addEventListener("resize", measure); // jsdom and older browsers
+      return () => window.removeEventListener("resize", measure);
+    }
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   const staleSources = state.sources.filter((s) => daysAgo(s.date) > 7);
 
   const visible = useMemo(() => {
@@ -398,7 +418,7 @@ export default function Board() {
     <div className="flex h-full">
       <div className="min-w-0 flex-1">
         {/* toolbar */}
-        <div className="sticky top-0 z-20 border-b border-slate-800 bg-slate-950/95 px-2 py-2 backdrop-blur md:px-3">
+        <div ref={toolbarRef} className="sticky top-0 z-20 border-b border-slate-800 bg-slate-950/95 px-2 py-2 backdrop-blur md:px-3">
           {staleSources.length > 0 && (
             <div className="mb-2 rounded border border-amber-500/40 bg-amber-500/10 px-2 py-1 text-xs text-amber-300">
               ⚠ {staleSources.map((s) => s.name).join(", ")} {staleSources.length > 1 ? "are" : "is"} more than 7 days old — re-import before drafting.
@@ -433,7 +453,7 @@ export default function Board() {
         {/* -------- desktop table -------- */}
         <div className="hidden overflow-x-auto md:block">
           <table className="w-full border-collapse text-sm">
-            <thead className="sticky top-[49px] z-10 bg-slate-950">
+            <thead className="sticky z-10 bg-slate-950" style={{ top: toolbarH }}>
               <tr className="border-b border-slate-800">
                 <th className={th}>#</th>
                 <th className={th}>Player</th>
@@ -524,7 +544,7 @@ export default function Board() {
             return (
               <React.Fragment key={r.id}>
                 {header && (
-                  <div className="sticky top-[92px] z-10 border-y border-slate-700/60 bg-slate-900 px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-slate-400">
+                  <div className="sticky z-10 border-y border-slate-700/60 bg-slate-900 px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-slate-400" style={{ top: toolbarH }}>
                     Tier {tier}
                   </div>
                 )}

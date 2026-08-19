@@ -1,6 +1,6 @@
 import React, { useMemo, useRef, useState } from "react";
 import { useStore, exportBoard, DEFAULT_NEWS_TEMPLATES } from "./store.jsx";
-import { parseCSV, mapHeaders, parsePastedList, normTeam, NFL_TEAMS, TAGS, POS_STYLE, fmt, daysAgo, uid } from "./util.js";
+import { parseCSV, mapHeaders, parsePastedList, normTeam, NFL_TEAMS, TAGS, POS_STYLE, fmt, daysAgo, uid, boardSnapshot, diffSnapshots, summarizeDiff, MAX_HISTORY } from "./util.js";
 import { computeBoard } from "./compute.js";
 import { fetchSleeperPlayers, fetchSleeperTrending, fetchSleeperProjections, nflverseURL, aggregateNflverse, computeVacated } from "./fetchers.js";
 
@@ -351,6 +351,98 @@ export function ByesView() {
 }
 
 // ---------------- VACATED ----------------
+// ---------------- HISTORY ----------------
+export function HistoryView() {
+  const { state, dispatch } = useStore();
+  const [label, setLabel] = useState("");
+  const [confirmId, setConfirmId] = useState(null);
+  const nameOf = (id) => state.players[id]?.name || id;
+
+  // Newest first, each compared against the version before it.
+  const rows = useMemo(() => {
+    const h = state.history || [];
+    return h.map((v, i) => ({ v, diff: i > 0 ? diffSnapshots(h[i - 1].snapshot, v.snapshot) : null })).reverse();
+  }, [state.history]);
+
+  const live = useMemo(() => {
+    const h = state.history || [];
+    if (!h.length) return null;
+    return diffSnapshots(h[h.length - 1].snapshot, boardSnapshot(state));
+  }, [state]);
+  const liveText = live ? summarizeDiff(live, nameOf) : "no changes";
+
+  return (
+    <div className="mx-auto max-w-3xl space-y-4 p-3 md:p-4">
+      <section className={card}>
+        <h2 className={h2}>Save a version</h2>
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <input className={input + " w-64"} value={label} placeholder="e.g. after mock draft 2"
+            onChange={(e) => setLabel(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter" && label.trim()) { dispatch({ type: "SAVE_VERSION", label: label.trim() }); setLabel(""); } }} />
+          <button className={btn} disabled={!label.trim()}
+            onClick={() => { dispatch({ type: "SAVE_VERSION", label: label.trim() }); setLabel(""); }}>
+            Save version
+          </button>
+        </div>
+        <p className="mt-2 text-[11px] text-slate-500">
+          Versions are also captured automatically a few seconds after you stop editing. Uncommitted since the last
+          version: <span className="text-slate-300">{liveText}</span>.
+        </p>
+        <p className="mt-1 text-[11px] text-slate-500">
+          A version stores your order, tiers and labels, tags, notes, and scorecards — not imported sources, which stay
+          shared across versions. Auto versions are culled past {MAX_HISTORY}; named ones are kept.
+        </p>
+      </section>
+
+      <section className={card}>
+        <h2 className={h2}>History ({(state.history || []).length})</h2>
+        {!rows.length && <p className="mt-2 text-sm text-slate-500">No versions yet. Edit the board, or save one above.</p>}
+        <ul className="mt-2 space-y-1.5">
+          {rows.map(({ v, diff }, i) => (
+            <li key={v.id} className="rounded border border-slate-800 bg-slate-950/60 px-2 py-1.5">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs tabular-nums text-slate-500">{new Date(v.at).toLocaleString()}</span>
+                {i === 0 && <span className="rounded bg-emerald-500/15 px-1.5 text-[10px] font-bold text-emerald-300">LATEST</span>}
+                {v.auto
+                  ? <span className="text-[10px] uppercase tracking-wide text-slate-600">auto</span>
+                  : <span className="text-xs font-medium text-sky-300">{v.label || "saved"}</span>}
+                <span className="grow" />
+                {confirmId === v.id ? (
+                  <>
+                    <span className="text-[11px] text-amber-300">Replace the board with this version?</span>
+                    <button className="rounded border border-amber-500 px-2 py-0.5 text-xs text-amber-300"
+                      onClick={() => { dispatch({ type: "RESTORE_VERSION", id: v.id }); setConfirmId(null); }}>Confirm</button>
+                    <button className="rounded border border-slate-700 px-2 py-0.5 text-xs text-slate-400"
+                      onClick={() => setConfirmId(null)}>Cancel</button>
+                  </>
+                ) : (
+                  <>
+                    <button className="rounded border border-slate-700 px-2 py-0.5 text-xs text-slate-300 hover:border-sky-500"
+                      onClick={() => setConfirmId(v.id)}>Restore</button>
+                    {v.auto && (
+                      <button title="Keep this one permanently" className="rounded border border-slate-700 px-2 py-0.5 text-xs text-slate-400 hover:border-sky-500"
+                        onClick={() => { const l = prompt("Name this version"); if (l) dispatch({ type: "RENAME_VERSION", id: v.id, label: l }); }}>Keep</button>
+                    )}
+                    <button title="Delete this version" className="rounded px-1 text-xs text-slate-600 hover:text-rose-300"
+                      onClick={() => dispatch({ type: "DELETE_VERSION", id: v.id })}>✕</button>
+                  </>
+                )}
+              </div>
+              <div className="mt-0.5 text-[11px] text-slate-500">{diff ? summarizeDiff(diff, nameOf) : "starting point"}</div>
+              {diff?.moved?.length > 0 && (
+                <div className="mt-0.5 text-[11px] text-slate-600">
+                  {diff.moved.slice(0, 4).map((m) => `${nameOf(m.id)} ${m.from}→${m.to}`).join(" · ")}
+                  {diff.moved.length > 4 ? ` · +${diff.moved.length - 4} more` : ""}
+                </div>
+              )}
+            </li>
+          ))}
+        </ul>
+      </section>
+    </div>
+  );
+}
+
 export function VacatedView() {
   const { state } = useStore();
   const v = state.vacated;

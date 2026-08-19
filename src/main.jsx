@@ -2,13 +2,14 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import { StoreProvider, useStore } from "./store.jsx";
 import Board from "./board.jsx";
-import { ImportsView, ByesView, VacatedView, SettingsView } from "./views.jsx";
+import { ImportsView, ByesView, VacatedView, HistoryView, SettingsView } from "./views.jsx";
 
 const TABS = [
   { key: "board", label: "Board", icon: "▤" },
   { key: "imports", label: "Imports", icon: "⇥" },
   { key: "byes", label: "Byes", icon: "◔" },
   { key: "vacated", label: "Vacated", icon: "⇄" },
+  { key: "history", label: "History", icon: "⟲" },
   { key: "settings", label: "Settings", icon: "⚙" },
 ];
 
@@ -41,6 +42,7 @@ function App() {
         {tab === "imports" && <ImportsView />}
         {tab === "byes" && <ByesView />}
         {tab === "vacated" && <VacatedView />}
+        {tab === "history" && <HistoryView />}
         {tab === "settings" && <SettingsView />}
       </main>
     </div>

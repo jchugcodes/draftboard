@@ -1,4 +1,4 @@
-import { parseCSV, mapHeaders, parsePastedList, normName, similarity, findCandidates, playerKey, normTeam, migrateTierBreaks } from "./src/util.js";
+import { parseCSV, mapHeaders, parsePastedList, normName, similarity, findCandidates, playerKey, normTeam, migrateTierBreaks, addTierBreak, removeTierBreak, moveTierBreak, boardSnapshot, diffSnapshots, summarizeDiff } from "./src/util.js";
 import { scoreProjection, DEFAULT_SCORING, replacementLevels, suggestTierBreaks, stddev, quintileRatings, targetCompRating } from "./src/compute.js";
 import { aggregateNflverse, computeVacated } from "./src/fetchers.js";
 let fails = 0;
@@ -45,6 +45,53 @@ ok(Math.abs(stddev([2, 4, 4, 4, 5, 5, 7, 9]) - 2.138) < 0.01, "stddev");
 const runt = [1, 2, 3, 4, 5, 6, 7, 8, 40].map((v, i) => ({ id: i, value: v }));
 const rb = suggestTierBreaks(runt, 2, 4);
 ok(rb.every((b) => runt.length - b >= 4), "no runt final tier " + JSON.stringify(rb));
+
+// board history: snapshots capture edits, diffs describe them
+{
+  const mk = (ranks, extra = {}) => ({
+    myRanks: ranks, tierBreaks: { all: [] }, tierNames: {},
+    players: Object.fromEntries(ranks.map((id) => [id, { tags: [], notes: "", handcuffOf: null, scorecard: { offense: 3 } }])),
+    ...extra,
+  });
+  const snapA = boardSnapshot(mk(["a", "b", "c"]));
+  ok(snapA.myRanks.length === 3 && snapA.players.a && !("sources" in snapA), "snapshot keeps only edited fields");
+
+  const snapB = boardSnapshot(mk(["b", "a", "c"]));
+  const d = diffSnapshots(snapA, snapB);
+  ok(d.moved.length === 2, "diff detects moves " + JSON.stringify(d.moved));
+  ok(d.moved[0].from === 1 && d.moved[0].to === 2 || d.moved[0].from === 2, "diff reports from/to");
+  ok(summarizeDiff(d).includes("moved"), "summary mentions moves: " + summarizeDiff(d));
+
+  ok(summarizeDiff(diffSnapshots(snapA, snapA)) === "no changes", "identical snapshots read as no changes");
+
+  const withTier = boardSnapshot(mk(["a", "b", "c"], { tierBreaks: { all: [1] } }));
+  ok(diffSnapshots(snapA, withTier).tiers === 1, "diff counts tier changes");
+
+  const tagged = boardSnapshot({ ...mk(["a", "b", "c"]), players: { a: { tags: ["favorite"], notes: "", handcuffOf: null, scorecard: { offense: 3 } } } });
+  ok(diffSnapshots(snapA, tagged).tagged === 1, "diff counts tag changes");
+}
+
+// tier dividers: labels must follow their group when dividers move
+{
+  const breaks = [5, 10];
+  const names = { 1: "Elite", 2: "Mid", 3: "Dart" };
+  const added = addTierBreak(breaks, names, 7); // splits tier 2
+  ok(JSON.stringify(added.breaks) === "[5,7,10]", "add break sorted " + JSON.stringify(added.breaks));
+  ok(added.names[1] === "Elite" && added.names[2] === "Mid" && added.names[4] === "Dart",
+    "add shifts labels below the split " + JSON.stringify(added.names));
+  ok(added.names[3] === undefined, "new tier starts unnamed");
+
+  const removed = removeTierBreak(breaks, names, 5); // merges tier 2 up into 1
+  ok(JSON.stringify(removed.breaks) === "[10]", "remove break " + JSON.stringify(removed.breaks));
+  ok(removed.names[1] === "Elite" && removed.names[2] === "Dart", "remove pulls labels up " + JSON.stringify(removed.names));
+
+  const moved = moveTierBreak(breaks, names, 10, 8); // tier 3's divider slides up
+  ok(JSON.stringify(moved.breaks) === "[5,8]", "move break " + JSON.stringify(moved.breaks));
+  ok(moved.names[3] === "Dart" && moved.names[1] === "Elite", "label rides along " + JSON.stringify(moved.names));
+
+  ok(addTierBreak([5], {}, 5).breaks.length === 1, "no duplicate break");
+  ok(addTierBreak([], {}, 0).breaks.length === 0, "no break at row 0");
+}
 
 // situation ratings: even quintiles, and direction respected
 const tenTeams = {}; for (let i = 0; i < 10; i++) tenTeams["T" + i] = i; // 0 worst .. 9 best

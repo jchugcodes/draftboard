@@ -54,15 +54,26 @@ like `jchugcodes.github.io/draftboard/` is fine. **Bump `SHELL` in
    rush_td, rec…). Projections are re-scored under *your* scoring rules and
    drive Proj + VOR. Without one, Pts≈ falls back to a generic positional
    curve and is labeled as approximate.
-4. **Sync Sleeper** for injury status, age/experience, and trending adds/drops.
+4. **Fetch Sleeper projections + ADP** for real stat projections (scored under
+   your rules, so Proj/VOR stop using the fallback curve) plus a half-PPR ADP
+   column, in one call. **Sync Sleeper** for injury status, age/experience, and
+   trending adds/drops.
    **Fetch nflverse** last-season stats for the advanced panel (target share,
    air-yards share, WOPR, aDOT, carry share, goal-line context) and
    vacated-opportunity math (last-season volume of players who changed teams,
    per current Sleeper rosters).
-5. **Board** — drag rows (or `[` `]` / shift+↑↓) to build your order, `t` to
-   cut a tier above the selected player, "Suggest tiers" to auto-cut on
-   consensus gaps, 1–5 to tag, `/` to search, Enter for the detail panel
-   (notes, handcuff link, situation scorecard, advanced stats, news links).
+5. **Board** — drag rows (or `[` `]` / shift+↑↓) to build your order, 1–5 to
+   tag, `/` to search, Enter for the detail panel (notes, handcuff link,
+   situation scorecard, advanced stats, news links). `#` is overall board rank
+   and `Pos#` is the rank within position, both in *your* order.
+
+   Tiers work like the divider stick at a checkout belt: drag **⠿ drag divider**
+   from the toolbar onto a player to drop a break above him, drag an existing
+   bar to move it, type into the bar to name the tier, and `✕` pulls it out
+   (merging into the tier above). `t` toggles a break above the selected row and
+   "Suggest tiers" cuts on consensus gaps. Tiers belong to the view you cut them
+   in — filter to RB and you are editing RB tiers, and clearing them leaves the
+   full-board tiers alone.
 6. **Settings → Export board JSON** to move between phone and desktop.
 
 ## Getting ADP in
@@ -86,6 +97,22 @@ FFC is consensus ADP, not Yahoo, so it won't populate the "Y vs mkt" column on
 its own; that needs a source named exactly `Yahoo`. Note that most ranking sites
 (FantasyPros, ESPN, Yahoo, CBS) forbid scraping in their terms — use their
 official APIs or a manual export instead.
+
+## Version history
+
+The **History** tab keeps snapshots of the board. One is captured automatically a
+few seconds after you stop editing, and **Save version** names a milestone. Each
+entry shows what changed against the one before it ("4 moved (Gibbs up 3) · +1
+tier · 2 tags"), and any version can be restored — restoring snapshots the
+current board first, so it is itself undoable.
+
+A version stores your order, tier breaks and labels, tags, notes, and
+scorecards. It does **not** store imported sources; those are shared across
+versions, so restoring an old order will not resurrect a deleted ADP column.
+
+Auto versions are culled past 30; named ones are kept. Sleeper metadata and the
+nflverse aggregate are no longer written to localStorage — they are large and
+re-fetchable, and leaving them out is what makes room for history.
 
 ## Situation scorecards
 

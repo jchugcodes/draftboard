@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useReducer } from "react";
-import { uid, playerKey, normName, normTeam, findCandidates, similarity, migrateTierBreaks } from "./util.js";
+import { uid, playerKey, normName, normTeam, findCandidates, similarity, migrateTierBreaks, addTierBreak, removeTierBreak, moveTierBreak, boardSnapshot, diffSnapshots, MAX_HISTORY } from "./util.js";
 import { DEFAULT_SCORING, DEFAULT_ROSTER, targetCompRating } from "./compute.js";
 
 const LS_KEY = "draftboard-v1";
@@ -28,6 +28,8 @@ const initialState = {
   // (myRanks, or myRanks filtered to the position), so a position's tiers stay
   // put instead of inheriting cuts from the overall order.
   tierBreaks: { all: [] },
+  tierNames: {}, // scope -> {tierOrdinal: label}
+  history: [],   // [{id, at, label, auto, snapshot}] newest last
   sources: [],   // {id, name, type: 'ranks'|'adp'|'proj', date, map:{playerId:number}, stats?:{playerId:{...}}}
   mergeQueue: [],// [{srcId, name, team, pos, value, stats?, candidates:[{id,score}]}]
   trending: { adds: [], drops: [], at: null },
@@ -131,18 +133,41 @@ function reducer(state, action) {
       draft.myRanks = order;
       return draft;
     }
+    // Wholesale replacement (Suggest / Clear) drops the labels with them —
+    // there is no honest way to map old names onto a fresh set of cuts.
     case "SET_TIER_BREAKS": {
       const scope = action.scope || "all";
       draft.tierBreaks[scope] = [...new Set(action.breaks)].sort((a, b) => a - b);
+      draft.tierNames = draft.tierNames || {};
+      draft.tierNames[scope] = {};
       return draft;
     }
     case "TOGGLE_TIER_BREAK": {
       const scope = action.scope || "all";
-      const i = action.index;
       const cur = draft.tierBreaks[scope] ?? [];
-      draft.tierBreaks[scope] = cur.includes(i)
-        ? cur.filter((x) => x !== i)
-        : [...cur, i].sort((a, b) => a - b);
+      draft.tierNames = draft.tierNames || {};
+      const names = draft.tierNames[scope] ?? {};
+      const next = cur.includes(action.index)
+        ? removeTierBreak(cur, names, action.index)
+        : addTierBreak(cur, names, action.index);
+      draft.tierBreaks[scope] = next.breaks;
+      draft.tierNames[scope] = next.names;
+      return draft;
+    }
+    case "MOVE_TIER_BREAK": {
+      const scope = action.scope || "all";
+      draft.tierNames = draft.tierNames || {};
+      const next = moveTierBreak(draft.tierBreaks[scope] ?? [], draft.tierNames[scope] ?? {}, action.from, action.to);
+      draft.tierBreaks[scope] = next.breaks;
+      draft.tierNames[scope] = next.names;
+      return draft;
+    }
+    case "SET_TIER_NAME": {
+      const scope = action.scope || "all";
+      draft.tierNames = draft.tierNames || {};
+      const names = { ...(draft.tierNames[scope] ?? {}) };
+      if (action.name) names[action.tier] = action.name; else delete names[action.tier];
+      draft.tierNames[scope] = names;
       return draft;
     }
 
@@ -213,6 +238,50 @@ function reducer(state, action) {
       return draft;
     }
 
+    // ---------- board history ----------
+    case "SAVE_VERSION": {
+      const snapshot = boardSnapshot(draft);
+      const list = [...(draft.history || []), {
+        id: uid(), at: new Date().toISOString(),
+        label: action.label || "", auto: !!action.auto, snapshot,
+      }];
+      // Named versions are milestones; only auto entries get culled.
+      while (list.length > MAX_HISTORY) {
+        const victim = list.findIndex((v) => v.auto);
+        if (victim === -1) break;
+        list.splice(victim, 1);
+      }
+      draft.history = list;
+      return draft;
+    }
+    case "RESTORE_VERSION": {
+      const v = (draft.history || []).find((x) => x.id === action.id);
+      if (!v) return draft;
+      // Snapshot the pre-restore board first, so restoring is itself undoable.
+      draft.history = [...draft.history, {
+        id: uid(), at: new Date().toISOString(), label: "before restore", auto: true, snapshot: boardSnapshot(draft),
+      }];
+      draft.myRanks = [...v.snapshot.myRanks].filter((id) => draft.players[id]);
+      for (const id of Object.keys(draft.players)) if (!draft.myRanks.includes(id)) draft.myRanks.push(id);
+      draft.tierBreaks = structuredClone(v.snapshot.tierBreaks || { all: [] });
+      draft.tierNames = structuredClone(v.snapshot.tierNames || {});
+      for (const [id, saved] of Object.entries(v.snapshot.players || {})) {
+        const p = draft.players[id];
+        if (!p) continue;
+        p.tags = [...(saved.tags || [])];
+        p.notes = saved.notes || "";
+        p.handcuffOf = saved.handcuffOf ?? null;
+        if (saved.scorecard) p.scorecard = { ...saved.scorecard };
+      }
+      return draft;
+    }
+    case "DELETE_VERSION": draft.history = (draft.history || []).filter((v) => v.id !== action.id); return draft;
+    case "RENAME_VERSION": {
+      const v = (draft.history || []).find((x) => x.id === action.id);
+      if (v) { v.label = action.label; v.auto = false; }
+      return draft;
+    }
+
     case "IMPORT_BOARD": return { ...migrateTierBreaks(action.state), ui: draft.ui };
     case "RESET": return structuredClone(initialState);
     default: return state;
@@ -230,11 +299,32 @@ export function StoreProvider({ children }) {
   });
   useEffect(() => {
     const t = setTimeout(() => {
+      // sleeperMeta/nflAgg are large re-fetchable caches; keeping them out of
+      // localStorage is what leaves room for the version history.
+      const { ui, sleeperMeta, nflAgg, ...persist } = state;
       try {
-        const { ui, ...persist } = state;
         localStorage.setItem(LS_KEY, JSON.stringify(persist));
-      } catch (e) { console.warn("save failed", e); }
+      } catch (e) {
+        try {
+          const keep = (persist.history || []).filter((v) => !v.auto).slice(-10);
+          localStorage.setItem(LS_KEY, JSON.stringify({ ...persist, history: keep }));
+          console.warn("storage full — trimmed auto versions", e);
+        } catch (e2) { console.warn("save failed", e2); }
+      }
     }, 250);
+    return () => clearTimeout(t);
+  }, [state]);
+
+  // Auto-version: after the board settles, append a snapshot if anything a
+  // person edits actually changed. Debounced so a burst of drags is one entry.
+  useEffect(() => {
+    if (!state.myRanks?.length) return;
+    const t = setTimeout(() => {
+      const snap = boardSnapshot(state);
+      const last = state.history?.[state.history.length - 1]?.snapshot;
+      if (last && JSON.stringify(last) === JSON.stringify(snap)) return;
+      dispatch({ type: "SAVE_VERSION", auto: true });
+    }, 4000);
     return () => clearTimeout(t);
   }, [state]);
   return <Ctx.Provider value={{ state, dispatch }}>{children}</Ctx.Provider>;

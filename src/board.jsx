@@ -342,6 +342,7 @@ export default function Board() {
     [state.myRanks, state.players, posFilter]
   );
   const scopeBreaks = state.tierBreaks?.[tierScope] ?? [];
+  const tierNames = state.tierNames?.[tierScope] ?? {};
 
   // ---------- keyboard ----------
   useEffect(() => {
@@ -391,10 +392,11 @@ export default function Board() {
     if (d.kind === "player" && d.id !== targetId) dispatch({ type: "REORDER", id: d.id, to });
     if (d.kind === "tier") {
       const at = scopeOrder.indexOf(targetId);
-      if (at > 0) {
-        const breaks = scopeBreaks.filter((b) => b !== d.id);
-        dispatch({ type: "SET_TIER_BREAKS", scope: tierScope, breaks: [...breaks, at] });
-      }
+      if (at > 0) dispatch({ type: "MOVE_TIER_BREAK", scope: tierScope, from: d.id, to: at });
+    }
+    if (d.kind === "newTier") {
+      const at = scopeOrder.indexOf(targetId);
+      if (at > 0) dispatch({ type: "TOGGLE_TIER_BREAK", scope: tierScope, index: at });
     }
     dragItem.current = null;
   };
@@ -480,6 +482,11 @@ export default function Board() {
               </button>
             ))}
             <span className="grow" />
+            <span draggable onDragStart={(e) => onDragStart(e, "new", "newTier")}
+              title="Drag onto a player to drop a tier divider above him"
+              className="hidden cursor-grab select-none items-center gap-1 rounded border border-dashed border-slate-600 px-2 py-1 text-xs text-slate-400 hover:border-sky-500 hover:text-sky-300 active:cursor-grabbing md:inline-flex">
+              ⠿ drag divider
+            </span>
             <button onClick={autoTiers} title={`Cut tiers on consensus gaps within ${posFilter || "the full board"}`}
               className="rounded border border-slate-700 px-2 py-1 text-xs text-slate-300 hover:border-sky-500">
               Suggest {posFilter ? `${posFilter} ` : ""}tiers
@@ -543,9 +550,14 @@ export default function Board() {
                         className="group cursor-grab select-none bg-slate-900/80">
                         <td colSpan={12 + sourceCols.length} className="border-y border-slate-700/60 px-2 py-1 text-[11px] font-bold uppercase tracking-widest text-slate-400">
                           <div className="flex items-center gap-2">
-                            <span>⠿ Tier {tier}</span>
+                            <span className="shrink-0">⠿ Tier {tier}</span>
+                            <input value={tierNames[tier] ?? ""} placeholder="name this tier"
+                              draggable={false} onDragStart={(e) => e.preventDefault()}
+                              onClick={(e) => e.stopPropagation()}
+                              onChange={(e) => dispatch({ type: "SET_TIER_NAME", scope: tierScope, tier, name: e.target.value })}
+                              className="w-48 rounded border border-transparent bg-transparent px-1 py-0.5 text-[11px] font-semibold normal-case tracking-normal text-slate-200 placeholder:font-normal placeholder:text-slate-600 hover:border-slate-700 focus:border-sky-600 focus:bg-slate-950 focus:outline-none" />
                             {breakIdx !== undefined && (
-                              <button draggable={false} title="Delete this tier break (merges into the tier above)"
+                              <button draggable={false} title="Pull this divider out (merges into the tier above)"
                                 onClick={(e) => { e.stopPropagation(); dispatch({ type: "TOGGLE_TIER_BREAK", scope: tierScope, index: breakIdx }); }}
                                 className="rounded px-1 leading-none text-slate-600 opacity-0 transition hover:bg-slate-800 hover:text-rose-300 focus:opacity-100 group-hover:opacity-100">
                                 ✕
@@ -612,7 +624,7 @@ export default function Board() {
                 {header && (
                   <div className="sticky z-10 border-y border-slate-700/60 bg-slate-900 px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-slate-400" style={{ top: toolbarH }}>
                     <div className="flex items-center justify-between">
-                      <span>Tier {tier}</span>
+                      <span className="truncate">Tier {tier}{tierNames[tier] ? ` · ${tierNames[tier]}` : ""}</span>
                       {breakIdx !== undefined && (
                         <button title="Delete this tier break"
                           onClick={(e) => { e.stopPropagation(); dispatch({ type: "TOGGLE_TIER_BREAK", scope: tierScope, index: breakIdx }); }}

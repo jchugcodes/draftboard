@@ -49,6 +49,116 @@ export function migrateTierBreaks(s) {
   return s;
 }
 
+// ---------- board history ----------
+// Snapshots keep only what a person actually edits. Sources, Sleeper metadata
+// and nflverse aggregates are re-fetchable bulk and would blow the localStorage
+// budget within a handful of versions.
+export const MAX_HISTORY = 30;
+
+export function boardSnapshot(state) {
+  const players = {};
+  for (const [id, p] of Object.entries(state.players || {})) {
+    players[id] = { tags: p.tags || [], notes: p.notes || "", handcuffOf: p.handcuffOf ?? null, scorecard: p.scorecard };
+  }
+  return {
+    myRanks: [...(state.myRanks || [])],
+    tierBreaks: structuredClone(state.tierBreaks || {}),
+    tierNames: structuredClone(state.tierNames || {}),
+    players,
+  };
+}
+
+// What changed between two snapshots, in the terms the board thinks in.
+export function diffSnapshots(prev, next) {
+  if (!prev || !next) return { moved: [], tagged: 0, tiers: 0, noted: 0, scored: 0 };
+  const prevPos = new Map(prev.myRanks.map((id, i) => [id, i]));
+  const moved = [];
+  next.myRanks.forEach((id, i) => {
+    const was = prevPos.get(id);
+    if (was != null && was !== i) moved.push({ id, from: was + 1, to: i + 1, delta: was - i });
+  });
+  moved.sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
+
+  const countBreaks = (tb) => Object.values(tb || {}).reduce((n, arr) => n + (arr?.length || 0), 0);
+  const countNames = (tn) => Object.values(tn || {}).reduce((n, o) => n + Object.keys(o || {}).length, 0);
+
+  let tagged = 0, noted = 0, scored = 0;
+  for (const [id, p] of Object.entries(next.players || {})) {
+    const q = prev.players?.[id];
+    if (!q) continue;
+    if (JSON.stringify(p.tags) !== JSON.stringify(q.tags)) tagged++;
+    if (p.notes !== q.notes) noted++;
+    if (JSON.stringify(p.scorecard) !== JSON.stringify(q.scorecard)) scored++;
+  }
+  return {
+    moved,
+    added: next.myRanks.filter((id) => !prevPos.has(id)).length,
+    removed: prev.myRanks.filter((id) => !next.myRanks.includes(id)).length,
+    tiers: countBreaks(next.tierBreaks) - countBreaks(prev.tierBreaks),
+    tierLabels: countNames(next.tierNames) - countNames(prev.tierNames),
+    tagged, noted, scored,
+  };
+}
+
+export function summarizeDiff(d, nameOf = (id) => id) {
+  if (!d) return "no changes";
+  const bits = [];
+  if (d.moved?.length) {
+    const top = d.moved[0];
+    bits.push(d.moved.length === 1
+      ? `${nameOf(top.id)} ${top.delta > 0 ? "up" : "down"} ${Math.abs(top.delta)}`
+      : `${d.moved.length} moved (${nameOf(top.id)} ${top.delta > 0 ? "up" : "down"} ${Math.abs(top.delta)})`);
+  }
+  if (d.added) bits.push(`+${d.added} player${d.added > 1 ? "s" : ""}`);
+  if (d.removed) bits.push(`-${d.removed} player${d.removed > 1 ? "s" : ""}`);
+  if (d.tiers) bits.push(`${d.tiers > 0 ? "+" : ""}${d.tiers} tier${Math.abs(d.tiers) > 1 ? "s" : ""}`);
+  if (d.tierLabels) bits.push(`${d.tierLabels > 0 ? "+" : ""}${d.tierLabels} tier label${Math.abs(d.tierLabels) > 1 ? "s" : ""}`);
+  if (d.tagged) bits.push(`${d.tagged} tag${d.tagged > 1 ? "s" : ""}`);
+  if (d.noted) bits.push(`${d.noted} note${d.noted > 1 ? "s" : ""}`);
+  if (d.scored) bits.push(`${d.scored} scorecard${d.scored > 1 ? "s" : ""}`);
+  return bits.length ? bits.join(" · ") : "no changes";
+}
+
+// ---------- tier dividers ----------
+// A tier break is a divider dropped between two rows, like the stick on a
+// checkout belt. Breaks stay a plain sorted index list; names hang off the tier
+// ORDINAL (1-based), so inserting or pulling a divider has to renumber the
+// labels below it or they detach from the group they described.
+export const tierOrdinalAt = (breaks, index) => breaks.filter((b) => index >= b).length + 1;
+
+export function addTierBreak(breaks, names, at) {
+  if (at <= 0 || breaks.includes(at)) return { breaks, names };
+  const split = tierOrdinalAt(breaks, at); // tier being cut in two
+  const nextNames = {};
+  for (const [ord, nm] of Object.entries(names || {})) {
+    const o = Number(ord);
+    nextNames[o > split ? o + 1 : o] = nm; // everything below shifts down a slot
+  }
+  return { breaks: [...breaks, at].sort((a, b) => a - b), names: nextNames };
+}
+
+export function removeTierBreak(breaks, names, at) {
+  if (!breaks.includes(at)) return { breaks, names };
+  const gone = tierOrdinalAt(breaks, at); // tier that started here, now merged up
+  const nextNames = {};
+  for (const [ord, nm] of Object.entries(names || {})) {
+    const o = Number(ord);
+    if (o === gone) continue;
+    nextNames[o > gone ? o - 1 : o] = nm;
+  }
+  return { breaks: breaks.filter((b) => b !== at), names: nextNames };
+}
+
+// Drag a divider somewhere else and its label rides along.
+export function moveTierBreak(breaks, names, from, to) {
+  if (from === to || to <= 0) return { breaks, names };
+  const label = (names || {})[tierOrdinalAt(breaks, from)];
+  const pulled = removeTierBreak(breaks, names, from);
+  const placed = addTierBreak(pulled.breaks, pulled.names, to);
+  if (label) placed.names[tierOrdinalAt(placed.breaks, to)] = label;
+  return placed;
+}
+
 // ---------- name normalization + fuzzy matching ----------
 const SUFFIXES = new Set(["jr", "sr", "ii", "iii", "iv", "v"]);
 export function normName(name) {

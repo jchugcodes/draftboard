@@ -2,7 +2,7 @@ import React, { useMemo, useRef, useState } from "react";
 import { useStore, exportBoard, DEFAULT_NEWS_TEMPLATES } from "./store.jsx";
 import { parseCSV, mapHeaders, parsePastedList, normTeam, NFL_TEAMS, TAGS, POS_STYLE, fmt, daysAgo, uid } from "./util.js";
 import { computeBoard } from "./compute.js";
-import { fetchSleeperPlayers, fetchSleeperTrending, nflverseURL, aggregateNflverse, computeVacated } from "./fetchers.js";
+import { fetchSleeperPlayers, fetchSleeperTrending, fetchSleeperProjections, nflverseURL, aggregateNflverse, computeVacated } from "./fetchers.js";
 
 const card = "rounded-lg border border-slate-800 bg-slate-900/50 p-3 md:p-4";
 const h2 = "text-sm font-semibold uppercase tracking-wide text-slate-300";
@@ -126,6 +126,18 @@ export function ImportsView() {
     rd.readAsText(f);
   };
 
+  const syncProjections = async (season) => {
+    setBusy("proj");
+    try {
+      const { projRows, adpRows } = await fetchSleeperProjections(season);
+      const stamp = new Date().toLocaleDateString();
+      if (projRows.length) dispatch({ type: "IMPORT", name: `Sleeper proj ${season}`, srcType: "proj", rows: projRows });
+      if (adpRows.length) dispatch({ type: "IMPORT", name: `Sleeper ADP ${stamp}`, srcType: "adp", rows: adpRows });
+      setMsg(`Sleeper ${season}: ${projRows.length} stat projections, ${adpRows.length} ADP entries imported.`);
+    } catch (e) { setMsg("Sleeper projections failed: " + e.message); }
+    setBusy(null);
+  };
+
   const loadSituation = (f) => {
     const rd = new FileReader();
     rd.onload = () => {
@@ -142,6 +154,7 @@ export function ImportsView() {
   };
 
   const lastSeason = new Date().getFullYear() - 1;
+  const thisSeason = new Date().getFullYear();
 
   return (
     <div className="mx-auto max-w-4xl space-y-4 p-3 md:p-4">
@@ -210,8 +223,18 @@ export function ImportsView() {
           </label>
           {state.nflSeason && <span className="text-xs text-emerald-400">✓ {state.nflSeason} loaded</span>}
         </div>
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <button className={btn2} onClick={() => syncProjections(thisSeason)} disabled={busy === "proj"}>
+            {busy === "proj" ? "Fetching…" : `Fetch Sleeper ${thisSeason} projections + ADP`}
+          </button>
+        </div>
         <p className="mt-2 text-[11px] text-slate-500">
           Sleeper feeds injury status + trending adds/drops on the board. nflverse feeds the advanced-stats panel (target share, WOPR, aDOT, snap context) and vacated-opportunity math. Sync Sleeper first — vacated opportunity compares last-season teams against current rosters.
+        </p>
+        <p className="mt-1 text-[11px] text-slate-500">
+          Projections import as two sources: a stat projection that drives Proj + VOR under <em>your</em> scoring rules
+          (replacing the approximate curve), and a half-PPR ADP column. Re-fetching adds new sources rather than
+          replacing the old ones — delete the stale ones above.
         </p>
       </section>
 

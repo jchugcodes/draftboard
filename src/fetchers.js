@@ -31,6 +31,51 @@ export async function fetchSleeperTrending(kind = "add", hours = 48, limit = 60)
   return res.json(); // [{player_id, count}]
 }
 
+// ---------- Sleeper season projections (free, public, CORS-friendly) ----------
+// Returns both a stat-projection set and a half-PPR ADP set from one call, so
+// Proj/VOR stop falling back to the generic positional curve.
+export async function fetchSleeperProjections(season) {
+  const pos = ["QB", "RB", "WR", "TE"].map((p) => `position[]=${p}`).join("&");
+  const url = `https://api.sleeper.app/projections/nfl/${season}?season_type=regular&order_by=ppr&${pos}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Sleeper projections: HTTP ${res.status}`);
+  const raw = await res.json();
+  if (!Array.isArray(raw)) throw new Error("Unexpected projections payload");
+
+  const projRows = [];
+  const adpRows = [];
+  for (const e of raw) {
+    const pl = e.player;
+    const st = e.stats;
+    if (!pl || !st) continue;
+    const name = [pl.first_name, pl.last_name].filter(Boolean).join(" ").trim();
+    const position = pl.position === "DEF" ? "DST" : pl.position;
+    if (!name || !["QB", "RB", "WR", "TE"].includes(position)) continue;
+    const team = normTeam(e.team) || null;
+
+    // A projection row only counts if Sleeper actually projected volume for him.
+    const hasVolume = ["pass_att", "rush_att", "rec"].some((k) => (st[k] ?? 0) > 0);
+    if (hasVolume) {
+      projRows.push({
+        name, team, pos: position, rank: null,
+        statLine: {
+          passYd: st.pass_yd ?? 0, passTD: st.pass_td ?? 0, passInt: st.pass_int ?? 0,
+          rushYd: st.rush_yd ?? 0, rushTD: st.rush_td ?? 0,
+          rec: st.rec ?? 0, recYd: st.rec_yd ?? 0, recTD: st.rec_td ?? 0,
+          fumbles: st.fum_lost ?? 0,
+          firstDowns: (st.pass_fd ?? 0) + (st.rush_fd ?? 0) + (st.rec_fd ?? 0),
+        },
+      });
+    }
+    // 999 is Sleeper's "undrafted" sentinel, not a real ADP.
+    const adp = st.adp_half_ppr;
+    if (adp != null && adp > 0 && adp < 999) adpRows.push({ name, team, pos: position, rank: adp });
+  }
+  if (!projRows.length && !adpRows.length) throw new Error(`no ${season} projections returned`);
+  adpRows.sort((a, b) => a.rank - b.rank);
+  return { projRows, adpRows };
+}
+
 // ---------- nflverse weekly player stats → season aggregates ----------
 // Release asset (CORS-enabled): stats_player_week_{season}.csv
 export function nflverseURL(season) {

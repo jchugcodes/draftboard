@@ -192,10 +192,15 @@ export function computeBoard(state) {
   }
   const { replacement, replRank } = replacementLevels(settings.roster, pointsByPos);
 
+  // Position rank counts down my own order, not consensus: RB3 means the third
+  // back I would take, which is the number that matters when filtering.
+  const posSeen = {};
   const rows = myRanks.map((id, i) => {
     const p = players[id];
     if (!p) return null;
     const myRank = i + 1;
+    posSeen[p.pos] = (posSeen[p.pos] || 0) + 1;
+    const posRank = posSeen[p.pos];
     const rankVals = rankSources.map((s) => s.map[id]).filter((v) => v != null);
     const consensus = rankVals.length ? mean(rankVals) : null;
     const adpVals = adpSources.map((s) => s.map[id]).filter((v) => v != null);
@@ -208,7 +213,7 @@ export function computeBoard(state) {
     const pts = ptsById[id] ?? null;
     const vor = pts != null && replacement[p.pos] != null ? pts - replacement[p.pos] : null;
     return {
-      id, p, myRank, consensus,
+      id, p, myRank, posRank, consensus,
       perSource: Object.fromEntries(sources.map((s) => [s.id, s.map[id] ?? null])),
       yahooADP, yahooDelta, sigma,
       adpDelta: adpRef != null ? myRank - adpRef : null,

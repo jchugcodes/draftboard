@@ -509,6 +509,7 @@ export default function Board() {
             <thead className="sticky z-10 bg-slate-950" style={{ top: toolbarH }}>
               <tr className="border-b border-slate-800">
                 <th className={th}>#</th>
+                <th className={th} title="Rank within position, in my order">Pos#</th>
                 <th className={th}>Player</th>
                 {sourceCols.map((s) => (
                   <th key={s.id} className={th} title={`${s.type.toUpperCase()} · imported ${new Date(s.date).toLocaleDateString()}${daysAgo(s.date) > 7 ? " · STALE" : ""}`}>
@@ -540,7 +541,7 @@ export default function Board() {
                         onDragStart={(e) => onDragStart(e, breakIdx ?? 0, "tier")}
                         onDragOver={(e) => e.preventDefault()} onDrop={(e) => onDropRow(e, r.id)}
                         className="group cursor-grab select-none bg-slate-900/80">
-                        <td colSpan={11 + sourceCols.length} className="border-y border-slate-700/60 px-2 py-1 text-[11px] font-bold uppercase tracking-widest text-slate-400">
+                        <td colSpan={12 + sourceCols.length} className="border-y border-slate-700/60 px-2 py-1 text-[11px] font-bold uppercase tracking-widest text-slate-400">
                           <div className="flex items-center gap-2">
                             <span>⠿ Tier {tier}</span>
                             {breakIdx !== undefined && (
@@ -562,6 +563,7 @@ export default function Board() {
                       onDoubleClick={() => setDetail(r.id)}
                       className={`cursor-pointer border-b border-slate-800/60 hover:bg-slate-900 ${sel ? "bg-sky-500/10 ring-1 ring-inset ring-sky-500/40" : ""}`}>
                       <td className="px-2 py-1 tabular-nums text-slate-500">{r.myRank}</td>
+                      <td className={`px-2 py-1 whitespace-nowrap tabular-nums text-[11px] font-medium ${ps.text}`}>{r.p.pos}{r.posRank}</td>
                       <td className="px-2 py-1">
                         <div className="flex items-center">
                           <span className={`mr-2 h-4 w-1 rounded-sm ${ps.rail}`} />
@@ -632,7 +634,7 @@ export default function Board() {
                       <InjuryBadge p={r.p} /><TagDots p={r.p} />
                     </div>
                     <div className="text-[11px] text-slate-500">
-                      {r.p.pos} · {r.p.team || "FA"} · bye {r.p.bye ?? "?"} · cons {fmt(r.consensus, 0)} · σ {fmt(r.sigma, 0)}
+                      {r.p.pos}{r.posRank} · {r.p.team || "FA"} · bye {r.p.bye ?? "?"} · cons {fmt(r.consensus, 0)} · σ {fmt(r.sigma, 0)}
                     </div>
                   </div>
                   <div className="text-right">

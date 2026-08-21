@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useReducer } from "react";
-import { uid, playerKey, normName, normTeam, findCandidates, similarity, migrateTierBreaks, addTierBreak, removeTierBreak, moveTierBreak, boardSnapshot, diffSnapshots, MAX_HISTORY } from "./util.js";
+import { uid, playerKey, normName, normTeam, findCandidates, similarity, migrateTierBreaks, consensusOrder, addTierBreak, removeTierBreak, moveTierBreak, boardSnapshot, diffSnapshots, MAX_HISTORY } from "./util.js";
 import { DEFAULT_SCORING, DEFAULT_ROSTER, targetCompRating } from "./compute.js";
 
 const LS_KEY = "draftboard-v1";
@@ -30,6 +30,7 @@ const initialState = {
   tierBreaks: { all: [] },
   tierNames: {}, // scope -> {tierOrdinal: label}
   history: [],   // [{id, at, label, auto, snapshot}] newest last
+  manualOrder: false, // true once the user drags/nudges a row themselves
   sources: [],   // {id, name, type: 'ranks'|'adp'|'proj', date, map:{playerId:number}, stats?:{playerId:{...}}}
   mergeQueue: [],// [{srcId, name, team, pos, value, stats?, candidates:[{id,score}]}]
   trending: { adds: [], drops: [], at: null },
@@ -89,7 +90,13 @@ function reducer(state, action) {
     case "SET_ROSTER": draft.settings.roster = { ...draft.settings.roster, ...action.patch }; return draft;
     case "SET_SCORING": draft.settings.scoring = { ...draft.settings.scoring, ...action.patch }; return draft;
 
-    case "IMPORT": applyImport(draft, action); return draft;
+    case "IMPORT": {
+      applyImport(draft, action);
+      // Until you have reordered anything yourself, a fresh import should land
+      // in consensus order rather than whatever order the file happened to be in.
+      if (!draft.manualOrder) draft.myRanks = consensusOrder(draft.myRanks, draft.sources);
+      return draft;
+    }
     case "DELETE_SOURCE": {
       draft.sources = draft.sources.filter((s) => s.id !== action.id);
       draft.mergeQueue = draft.mergeQueue.filter((q) => q.srcId !== action.id);
@@ -113,6 +120,7 @@ function reducer(state, action) {
 
     case "REORDER": { // move player id to index
       const { id, to } = action;
+      draft.manualOrder = true;
       const from = draft.myRanks.indexOf(id);
       if (from < 0) return draft;
       draft.myRanks.splice(from, 1);
@@ -120,6 +128,7 @@ function reducer(state, action) {
       return draft;
     }
     case "MOVE": { // delta move
+      draft.manualOrder = true;
       const i = draft.myRanks.indexOf(action.id);
       const j = Math.max(0, Math.min(draft.myRanks.length - 1, i + action.delta));
       if (i < 0 || i === j) return draft;

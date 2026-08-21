@@ -1,4 +1,4 @@
-import { parseCSV, mapHeaders, parsePastedList, normName, similarity, findCandidates, playerKey, normTeam, migrateTierBreaks, addTierBreak, removeTierBreak, moveTierBreak, boardSnapshot, diffSnapshots, summarizeDiff } from "./src/util.js";
+import { parseCSV, mapHeaders, parsePastedList, normName, similarity, findCandidates, playerKey, normTeam, migrateTierBreaks, consensusOrder, addTierBreak, removeTierBreak, moveTierBreak, boardSnapshot, diffSnapshots, summarizeDiff } from "./src/util.js";
 import { scoreProjection, DEFAULT_SCORING, replacementLevels, suggestTierBreaks, stddev, quintileRatings, targetCompRating } from "./src/compute.js";
 import { aggregateNflverse, computeVacated } from "./src/fetchers.js";
 let fails = 0;
@@ -69,6 +69,24 @@ ok(rb.every((b) => runt.length - b >= 4), "no runt final tier " + JSON.stringify
 
   const tagged = boardSnapshot({ ...mk(["a", "b", "c"]), players: { a: { tags: ["favorite"], notes: "", handcuffOf: null, scorecard: { offense: 3 } } } });
   ok(diffSnapshots(snapA, tagged).tagged === 1, "diff counts tag changes");
+}
+
+// consensus ordering seeds a fresh board
+{
+  const srcs = [
+    { type: "ranks", map: { a: 3, b: 1, c: 2 } },
+    { type: "adp", map: { a: 5, b: 1, c: 2 } },
+    { type: "proj", map: { a: 1, b: 99, c: 99 } }, // must be ignored
+  ];
+  const ord = consensusOrder(["a", "b", "c"], srcs);
+  ok(JSON.stringify(ord) === '["b","c","a"]', "consensus order " + JSON.stringify(ord));
+
+  const withUnranked = consensusOrder(["a", "z", "b"], [{ type: "ranks", map: { a: 2, b: 1 } }]);
+  ok(withUnranked[2] === "z", "unranked sink to the bottom " + JSON.stringify(withUnranked));
+
+  const tie = consensusOrder(["x", "y"], [{ type: "ranks", map: { x: 4, y: 4 } }]);
+  ok(JSON.stringify(tie) === '["x","y"]', "ties keep existing order");
+  ok(consensusOrder(["a"], []).length === 1, "no sources is a no-op");
 }
 
 // tier dividers: labels must follow their group when dividers move

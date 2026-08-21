@@ -2,7 +2,7 @@ import React, { useMemo, useRef, useState } from "react";
 import { useStore, exportBoard, DEFAULT_NEWS_TEMPLATES } from "./store.jsx";
 import { parseCSV, mapHeaders, parsePastedList, normTeam, NFL_TEAMS, TAGS, POS_STYLE, fmt, daysAgo, uid, boardSnapshot, diffSnapshots, summarizeDiff, MAX_HISTORY } from "./util.js";
 import { computeBoard } from "./compute.js";
-import { fetchSleeperPlayers, fetchSleeperTrending, fetchSleeperProjections, nflverseURL, aggregateNflverse, computeVacated } from "./fetchers.js";
+import { fetchSleeperPlayers, fetchSleeperTrending, fetchSleeperProjections, fetchEspnRanks, nflverseURL, aggregateNflverse, computeVacated } from "./fetchers.js";
 
 const card = "rounded-lg border border-slate-800 bg-slate-900/50 p-3 md:p-4";
 const h2 = "text-sm font-semibold uppercase tracking-wide text-slate-300";
@@ -138,6 +138,18 @@ export function ImportsView() {
     setBusy(null);
   };
 
+  const syncEspn = async (season) => {
+    setBusy("espn");
+    try {
+      const { rankRows, adpRows } = await fetchEspnRanks(season);
+      const stamp = new Date().toLocaleDateString();
+      if (rankRows.length) dispatch({ type: "IMPORT", name: `ESPN rank ${season}`, srcType: "ranks", rows: rankRows });
+      if (adpRows.length) dispatch({ type: "IMPORT", name: `ESPN ADP ${stamp}`, srcType: "adp", rows: adpRows });
+      setMsg(`ESPN ${season}: ${rankRows.length} ranks, ${adpRows.length} ADP entries imported.`);
+    } catch (e) { setMsg("ESPN fetch failed: " + e.message); }
+    setBusy(null);
+  };
+
   const loadSituation = (f) => {
     const rd = new FileReader();
     rd.onload = () => {
@@ -227,9 +239,19 @@ export function ImportsView() {
           <button className={btn2} onClick={() => syncProjections(thisSeason)} disabled={busy === "proj"}>
             {busy === "proj" ? "Fetching…" : `Fetch Sleeper ${thisSeason} projections + ADP`}
           </button>
+          <button className={btn2} onClick={() => syncEspn(thisSeason)} disabled={busy === "espn"}>
+            {busy === "espn" ? "Fetching…" : `Fetch ESPN ${thisSeason} ranks + ADP`}
+          </button>
         </div>
         <p className="mt-2 text-[11px] text-slate-500">
           Sleeper feeds injury status + trending adds/drops on the board. nflverse feeds the advanced-stats panel (target share, WOPR, aDOT, snap context) and vacated-opportunity math. Sync Sleeper first — vacated opportunity compares last-season teams against current rosters.
+        </p>
+        <p className="mt-1 text-[11px] text-slate-500">
+          Sources that can be pulled directly: <strong className="text-slate-400">Sleeper</strong> and
+          <strong className="text-slate-400"> ESPN</strong> in-app, plus <strong className="text-slate-400">Fantasy Football
+          Calculator</strong> consensus ADP via <code className="text-slate-400">npm run adp</code>. Yahoo requires an
+          OAuth app, and FantasyPros requires a paid API key — both refuse anonymous requests, and their terms forbid
+          scraping the pages instead. Export a CSV from either and load it above and it becomes just another column.
         </p>
         <p className="mt-1 text-[11px] text-slate-500">
           Projections import as two sources: a stat projection that drives Proj + VOR under <em>your</em> scoring rules

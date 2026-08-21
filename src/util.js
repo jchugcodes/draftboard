@@ -49,6 +49,25 @@ export function migrateTierBreaks(s) {
   return s;
 }
 
+
+// Order ids by mean rank across every opinion source. Players nobody ranked sink
+// to the bottom in their existing order rather than jumping to the top.
+export function consensusOrder(ids, sources) {
+  const vals = {};
+  for (const s of sources || []) {
+    if (s.type === "proj") continue;
+    for (const [pid, v] of Object.entries(s.map || {})) {
+      if (v == null) continue;
+      (vals[pid] ||= []).push(Number(v));
+    }
+  }
+  const avg = (a) => a.reduce((x, y) => x + y, 0) / a.length;
+  return ids
+    .map((id, i) => ({ id, i, v: vals[id]?.length ? avg(vals[id]) : Infinity }))
+    .sort((a, b) => (a.v - b.v) || (a.i - b.i))
+    .map((x) => x.id);
+}
+
 // ---------- board history ----------
 // Snapshots keep only what a person actually edits. Sources, Sleeper metadata
 // and nflverse aggregates are re-fetchable bulk and would blow the localStorage

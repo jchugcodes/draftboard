@@ -185,3 +185,47 @@ export async function fetchRSSHeadlines(proxy, rssUrl, max = 8) {
     date: it.querySelector("pubDate")?.textContent || "",
   }));
 }
+
+// ---------- ESPN draft rankings + ADP ----------
+// ESPN's fantasy app reads this unauthenticated JSON endpoint and it reflects
+// the caller's Origin, so the browser can hit it directly. It is undocumented,
+// so treat a shape change as expected breakage rather than a bug.
+const ESPN_POS = { 1: "QB", 2: "RB", 3: "WR", 4: "TE", 5: "K", 16: "DST" };
+const ESPN_TEAM = {
+  1: "ATL", 2: "BUF", 3: "CHI", 4: "CIN", 5: "CLE", 6: "DAL", 7: "DEN", 8: "DET",
+  9: "GB", 10: "TEN", 11: "IND", 12: "KC", 13: "LV", 14: "LAR", 15: "MIA", 16: "MIN",
+  17: "NE", 18: "NO", 19: "NYG", 20: "NYJ", 21: "PHI", 22: "ARI", 23: "PIT", 24: "LAC",
+  25: "SF", 26: "SEA", 27: "TB", 28: "WAS", 29: "CAR", 30: "JAX", 33: "BAL", 34: "HOU",
+};
+
+export async function fetchEspnRanks(season, limit = 300) {
+  const filter = { players: { limit, sortDraftRanks: { sortPriority: 100, sortAsc: true, value: "PPR" } } };
+  const url = `https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons/${season}/segments/0/leaguedefaults/3?view=kona_player_info`;
+  const res = await fetch(url, { headers: { "x-fantasy-filter": JSON.stringify(filter) } });
+  if (!res.ok) throw new Error(`ESPN: HTTP ${res.status}`);
+  const data = await res.json();
+  const list = data?.players;
+  if (!Array.isArray(list) || !list.length) throw new Error(`no ${season} players returned`);
+
+  const rankRows = [];
+  const adpRows = [];
+  for (const entry of list) {
+    const pl = entry.player;
+    if (!pl?.fullName) continue;
+    const pos = ESPN_POS[pl.defaultPositionId];
+    if (!pos) continue;
+    const team = ESPN_TEAM[pl.proTeamId] || null; // 0 = free agent
+    const base = { name: pl.fullName, team, pos };
+
+    const dr = pl.draftRanksByRankType || {};
+    const rank = (dr.PPR || dr.STANDARD)?.rank;
+    if (rank > 0) rankRows.push({ ...base, rank });
+
+    const adp = pl.ownership?.averageDraftPosition;
+    if (adp > 0) adpRows.push({ ...base, rank: adp });
+  }
+  if (!rankRows.length && !adpRows.length) throw new Error("no ranks or ADP in payload — ESPN shape may have changed");
+  rankRows.sort((a, b) => a.rank - b.rank);
+  adpRows.sort((a, b) => a.rank - b.rank);
+  return { rankRows, adpRows };
+}

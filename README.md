@@ -114,6 +114,27 @@ Auto versions are culled past 30; named ones are kept. Sleeper metadata and the
 nflverse aggregate are no longer written to localStorage — they are large and
 re-fetchable, and leaving them out is what makes room for history.
 
+## Ranking sources
+
+| Source | How | Gives |
+| --- | --- | --- |
+| Sleeper | in-app button | stat projections + half-PPR ADP |
+| ESPN | in-app button | ESPN's own PPR draft ranks + ESPN ADP |
+| Fantasy Football Calculator | `npm run adp` | consensus ADP from real mock drafts |
+| Yahoo / FantasyPros / anything else | export a CSV, load it on Imports | whatever the file has |
+
+Every source becomes its own column on the board, and the detail panel plots them
+all on one scale against your rank ("Where the sites have him") so you can see
+who you are high or low on at a glance.
+
+Yahoo and FantasyPros are not fetched directly: Yahoo's Fantasy API needs a
+registered OAuth app and FantasyPros' API needs a paid key — both return 401/403
+to anonymous requests, and scraping their pages instead is against their terms.
+Exporting a CSV from either and importing it works fine.
+
+Until you reorder a row yourself, importing re-seeds the board in consensus
+order; after that your order is yours and imports only add columns.
+
 ## Situation scorecards
 
 `npm run situation` builds per-team scorecard ratings from nflverse open data and

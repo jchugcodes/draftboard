@@ -194,6 +194,87 @@ function AdvStats({ p, season }) {
 }
 
 // ---------------- detail panel ----------------
+
+// ---------------- rank comparison ----------------
+// Every source that has an opinion on this player, on one shared scale next to
+// mine. Delta is source minus my rank: positive means the site is lower on him
+// than I am, i.e. I could wait.
+function SourceCompare({ p }) {
+  const { state } = useStore();
+  const myRank = state.myRanks.indexOf(p.id) + 1;
+  const rows = (state.sources || [])
+    .filter((s) => s.type !== "proj")
+    .map((s) => ({ key: s.id, label: s.name, type: s.type, stale: daysAgo(s.date) > 7, v: s.map?.[p.id] ?? null }))
+    .filter((r) => r.v != null)
+    .sort((a, b) => a.v - b.v);
+
+  if (!rows.length) {
+    return (
+      <div className="text-xs text-slate-500">
+        No ranking sources cover this player yet. Fetch Sleeper or ESPN on the Imports tab.
+      </div>
+    );
+  }
+
+  const vals = rows.map((r) => r.v);
+  const consensus = vals.reduce((a, b) => a + b, 0) / vals.length;
+  const lo = Math.min(...vals, myRank);
+  const hi = Math.max(...vals, myRank);
+  const span = Math.max(1, hi - lo);
+  const at = (v) => ((v - lo) / span) * 100;
+  const spread = Math.max(...vals) - Math.min(...vals);
+
+  const Row = ({ label, value, delta, tone, dot, title, stale }) => (
+    <div className="flex items-center gap-2">
+      <span className={`w-24 shrink-0 truncate text-[11px] ${tone}`} title={title || label}>
+        {label}{stale && <span className="text-amber-400"> *</span>}
+      </span>
+      <span className="w-9 shrink-0 text-right text-[11px] tabular-nums text-slate-300">{fmt(value, 0)}</span>
+      <div className="relative h-1.5 min-w-0 flex-1 rounded bg-slate-800">
+        <span className={`absolute -top-[3px] h-2 w-2 -translate-x-1/2 rounded-full ${dot}`} style={{ left: `${at(value)}%` }} />
+      </div>
+      <span className={`w-9 shrink-0 text-right text-[11px] tabular-nums ${delta > 0 ? "text-emerald-400" : delta < 0 ? "text-rose-400" : "text-slate-600"}`}>
+        {delta == null ? "" : delta > 0 ? `+${fmt(delta, 0)}` : fmt(delta, 0)}
+      </span>
+    </div>
+  );
+
+  return (
+    <div className="space-y-1">
+      <Row label="My rank" value={myRank} delta={null} tone="font-semibold text-sky-300" dot="bg-sky-400 ring-2 ring-sky-400/30" />
+      {rows.map((r) => (
+        <Row key={r.key} label={r.label} value={r.v} delta={r.v - myRank} stale={r.stale}
+          tone="text-slate-400" dot={r.type === "adp" ? "bg-violet-400" : "bg-slate-400"}
+          title={`${r.label} · ${r.type.toUpperCase()}`} />
+      ))}
+      <div className="flex items-center justify-between pt-1 text-[11px] text-slate-500">
+        <span>consensus {fmt(consensus, 1)} · spread {fmt(spread, 0)} across {rows.length} source{rows.length > 1 ? "s" : ""}</span>
+        <span className={myRank < consensus ? "text-rose-400" : myRank > consensus ? "text-emerald-400" : ""}>
+          {myRank < consensus ? `${fmt(consensus - myRank, 0)} higher than the room` : myRank > consensus ? `${fmt(myRank - consensus, 0)} lower than the room` : "on consensus"}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// Projected stat line from whichever source carries projections.
+function ProjLine({ p }) {
+  const { state } = useStore();
+  const proj = (state.sources || []).find((s) => s.type === "proj" && s.stats?.[p.id]);
+  if (!proj) return null;
+  const st = proj.stats[p.id];
+  const bits = [];
+  if (st.passYd) bits.push(`${fmt(st.passYd, 0)} pass yd`, `${fmt(st.passTD, 0)} pass TD`);
+  if (st.rushYd) bits.push(`${fmt(st.rushYd, 0)} rush yd`, `${fmt(st.rushTD, 0)} rush TD`);
+  if (st.rec) bits.push(`${fmt(st.rec, 0)} rec`, `${fmt(st.recYd, 0)} rec yd`, `${fmt(st.recTD, 0)} rec TD`);
+  if (!bits.length) return null;
+  return (
+    <div className="mt-1 text-[11px] text-slate-400">
+      <span className="text-slate-500">{proj.name}:</span> {bits.join(" · ")}
+    </div>
+  );
+}
+
 function DetailPanel({ id, onClose }) {
   const { state, dispatch } = useStore();
   const p = state.players[id];
@@ -245,6 +326,11 @@ function DetailPanel({ id, onClose }) {
               onChange={(e) => dispatch({ type: "SET_BYE", id: p.id, bye: e.target.value === "" ? null : +e.target.value })}
               className="mt-0.5 w-full rounded border border-slate-700 bg-slate-900 px-1.5 py-1 text-xs text-slate-200" />
           </label>
+        </div>
+        <div>
+          <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-400">Where the sites have him</div>
+          <SourceCompare p={p} />
+          <ProjLine p={p} />
         </div>
         <Scorecard p={p} />
         <AdvStats p={p} season={state.nflSeason} />

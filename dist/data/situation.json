@@ -1,0 +1,297 @@
+{
+  "app": "draftboard-situation",
+  "version": 1,
+  "statsSeason": 2025,
+  "scheduleSeason": 2026,
+  "generated": "2026-08-21T19:19:37.608Z",
+  "teams": {
+    "ARI": {
+      "offense": 2,
+      "qb": 2,
+      "olinePass": 2,
+      "olineRun": 1,
+      "pace": 4,
+      "sosSeason": 2,
+      "sosPlayoff": 4
+    },
+    "ATL": {
+      "offense": 2,
+      "qb": 2,
+      "olinePass": 5,
+      "olineRun": 2,
+      "pace": 3,
+      "sosSeason": 4,
+      "sosPlayoff": 4
+    },
+    "BAL": {
+      "offense": 4,
+      "qb": 3,
+      "olinePass": 1,
+      "olineRun": 5,
+      "pace": 1,
+      "sosSeason": 3,
+      "sosPlayoff": 3
+    },
+    "BUF": {
+      "offense": 5,
+      "qb": 5,
+      "olinePass": 2,
+      "olineRun": 5,
+      "pace": 4,
+      "sosSeason": 2,
+      "sosPlayoff": 3
+    },
+    "CAR": {
+      "offense": 1,
+      "qb": 1,
+      "olinePass": 3,
+      "olineRun": 2,
+      "pace": 2,
+      "sosSeason": 1,
+      "sosPlayoff": 3
+    },
+    "CHI": {
+      "offense": 4,
+      "qb": 3,
+      "olinePass": 5,
+      "olineRun": 5,
+      "pace": 5,
+      "sosSeason": 1,
+      "sosPlayoff": 3
+    },
+    "CIN": {
+      "offense": 3,
+      "qb": 3,
+      "olinePass": 4,
+      "olineRun": 4,
+      "pace": 3,
+      "sosSeason": 2,
+      "sosPlayoff": 4
+    },
+    "CLE": {
+      "offense": 1,
+      "qb": 1,
+      "olinePass": 2,
+      "olineRun": 2,
+      "pace": 3,
+      "sosSeason": 5,
+      "sosPlayoff": 5
+    },
+    "DAL": {
+      "offense": 5,
+      "qb": 5,
+      "olinePass": 5,
+      "olineRun": 3,
+      "pace": 5,
+      "sosSeason": 4,
+      "sosPlayoff": 2
+    },
+    "DEN": {
+      "offense": 4,
+      "qb": 4,
+      "olinePass": 5,
+      "olineRun": 3,
+      "pace": 5,
+      "sosSeason": 1,
+      "sosPlayoff": 2
+    },
+    "DET": {
+      "offense": 4,
+      "qb": 4,
+      "olinePass": 3,
+      "olineRun": 2,
+      "pace": 3,
+      "sosSeason": 5,
+      "sosPlayoff": 2
+    },
+    "GB": {
+      "offense": 5,
+      "qb": 5,
+      "olinePass": 4,
+      "olineRun": 3,
+      "pace": 2,
+      "sosSeason": 3,
+      "sosPlayoff": 2
+    },
+    "HOU": {
+      "offense": 2,
+      "qb": 3,
+      "olinePass": 4,
+      "olineRun": 1,
+      "pace": 5,
+      "sosSeason": 4,
+      "sosPlayoff": 1
+    },
+    "IND": {
+      "offense": 4,
+      "qb": 4,
+      "olinePass": 4,
+      "olineRun": 5,
+      "pace": 2,
+      "sosSeason": 3,
+      "sosPlayoff": 5
+    },
+    "JAX": {
+      "offense": 3,
+      "qb": 3,
+      "olinePass": 3,
+      "olineRun": 3,
+      "pace": 5,
+      "sosSeason": 4,
+      "sosPlayoff": 5
+    },
+    "KC": {
+      "offense": 3,
+      "qb": 3,
+      "olinePass": 2,
+      "olineRun": 5,
+      "pace": 3,
+      "sosSeason": 2,
+      "sosPlayoff": 2
+    },
+    "LAC": {
+      "offense": 2,
+      "qb": 2,
+      "olinePass": 1,
+      "olineRun": 4,
+      "pace": 5,
+      "sosSeason": 1,
+      "sosPlayoff": 5
+    },
+    "LAR": {
+      "offense": 5,
+      "qb": 5,
+      "olinePass": 5,
+      "olineRun": 4,
+      "pace": 4,
+      "sosSeason": 4,
+      "sosPlayoff": 4
+    },
+    "LV": {
+      "offense": 1,
+      "qb": 1,
+      "olinePass": 1,
+      "olineRun": 1,
+      "pace": 1,
+      "sosSeason": 1,
+      "sosPlayoff": 4
+    },
+    "MIA": {
+      "offense": 2,
+      "qb": 3,
+      "olinePass": 3,
+      "olineRun": 3,
+      "pace": 1,
+      "sosSeason": 3,
+      "sosPlayoff": 1
+    },
+    "MIN": {
+      "offense": 1,
+      "qb": 1,
+      "olinePass": 1,
+      "olineRun": 2,
+      "pace": 1,
+      "sosSeason": 5,
+      "sosPlayoff": 5
+    },
+    "NE": {
+      "offense": 5,
+      "qb": 5,
+      "olinePass": 1,
+      "olineRun": 3,
+      "pace": 3,
+      "sosSeason": 2,
+      "sosPlayoff": 3
+    },
+    "NO": {
+      "offense": 1,
+      "qb": 2,
+      "olinePass": 2,
+      "olineRun": 1,
+      "pace": 4,
+      "sosSeason": 5,
+      "sosPlayoff": 4
+    },
+    "NYG": {
+      "offense": 3,
+      "qb": 2,
+      "olinePass": 2,
+      "olineRun": 5,
+      "pace": 4,
+      "sosSeason": 3,
+      "sosPlayoff": 3
+    },
+    "NYJ": {
+      "offense": 1,
+      "qb": 1,
+      "olinePass": 1,
+      "olineRun": 1,
+      "pace": 2,
+      "sosSeason": 1,
+      "sosPlayoff": 2
+    },
+    "PHI": {
+      "offense": 3,
+      "qb": 4,
+      "olinePass": 3,
+      "olineRun": 3,
+      "pace": 2,
+      "sosSeason": 5,
+      "sosPlayoff": 1
+    },
+    "PIT": {
+      "offense": 4,
+      "qb": 4,
+      "olinePass": 4,
+      "olineRun": 4,
+      "pace": 1,
+      "sosSeason": 1,
+      "sosPlayoff": 5
+    },
+    "SEA": {
+      "offense": 3,
+      "qb": 4,
+      "olinePass": 4,
+      "olineRun": 1,
+      "pace": 2,
+      "sosSeason": 5,
+      "sosPlayoff": 1
+    },
+    "SF": {
+      "offense": 5,
+      "qb": 5,
+      "olinePass": 5,
+      "olineRun": 2,
+      "pace": 4,
+      "sosSeason": 2,
+      "sosPlayoff": 1
+    },
+    "TB": {
+      "offense": 2,
+      "qb": 1,
+      "olinePass": 3,
+      "olineRun": 4,
+      "pace": 3,
+      "sosSeason": 3,
+      "sosPlayoff": 1
+    },
+    "TEN": {
+      "offense": 1,
+      "qb": 1,
+      "olinePass": 1,
+      "olineRun": 1,
+      "pace": 1,
+      "sosSeason": 3,
+      "sosPlayoff": 3
+    },
+    "WAS": {
+      "offense": 3,
+      "qb": 2,
+      "olinePass": 3,
+      "olineRun": 4,
+      "pace": 1,
+      "sosSeason": 4,
+      "sosPlayoff": 1
+    }
+  }
+}

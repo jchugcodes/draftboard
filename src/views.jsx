@@ -1,7 +1,8 @@
 import React, { useMemo, useRef, useState } from "react";
 import { useStore, exportBoard, DEFAULT_NEWS_TEMPLATES } from "./store.jsx";
-import { parseCSV, mapHeaders, parsePastedList, normTeam, NFL_TEAMS, TAGS, POS_STYLE, fmt, daysAgo, uid, boardSnapshot, diffSnapshots, summarizeDiff, MAX_HISTORY } from "./util.js";
+import { rowsFromCSV, rowsFromJSON, parseCSV, mapHeaders, parsePastedList, normTeam, NFL_TEAMS, TAGS, POS_STYLE, fmt, daysAgo, uid, boardSnapshot, diffSnapshots, summarizeDiff, MAX_HISTORY } from "./util.js";
 import { computeBoard } from "./compute.js";
+import Onboard from "./onboard.jsx";
 import { fetchSleeperPlayers, fetchSleeperTrending, fetchSleeperProjections, fetchEspnRanks, nflverseURL, aggregateNflverse, computeVacated } from "./fetchers.js";
 
 const card = "rounded-lg border border-slate-800 bg-slate-900/50 p-3 md:p-4";
@@ -11,48 +12,7 @@ const btn2 = "rounded border border-slate-700 px-3 py-1.5 text-sm text-slate-300
 const input = "rounded border border-slate-700 bg-slate-950 px-2 py-1 text-sm";
 
 // ---------------- IMPORTS ----------------
-function rowsFromCSV(text) {
-  const rows = parseCSV(text);
-  if (rows.length < 2) return null;
-  const H = mapHeaders(rows[0]);
-  if (H.name === undefined) return null;
-  const statKeys = ["passYd", "passTD", "passInt", "rushYd", "rushTD", "rec", "recYd", "recTD", "fumbles", "firstDowns"];
-  const hasStats = statKeys.some((k) => H[k] !== undefined);
-  const out = [];
-  for (let i = 1; i < rows.length; i++) {
-    const r = rows[i];
-    const name = r[H.name]?.trim();
-    if (!name) continue;
-    const row = {
-      name,
-      team: H.team !== undefined ? normTeam(r[H.team]) : null,
-      pos: H.pos !== undefined ? (r[H.pos] || "").toUpperCase().replace(/\d+/g, "").replace("DEF", "DST").trim() || null : null,
-      bye: H.bye !== undefined && r[H.bye] !== "" ? parseInt(r[H.bye], 10) || null : null,
-      rank: H.rank !== undefined ? parseFloat(r[H.rank]) : i,
-    };
-    if (Number.isNaN(row.rank)) row.rank = i;
-    if (hasStats) {
-      row.statLine = {};
-      for (const k of statKeys) if (H[k] !== undefined) row.statLine[k] = parseFloat(r[H[k]]) || 0;
-    }
-    out.push(row);
-  }
-  return { rows: out, hasStats };
-}
-
-function rowsFromJSON(text) {
-  const data = JSON.parse(text);
-  const arr = Array.isArray(data) ? data : data.players || data.rows || [];
-  return arr.map((x, i) => ({
-    name: x.name || x.player || x.full_name,
-    team: normTeam(x.team || x.tm),
-    pos: (x.pos || x.position || "").toUpperCase().replace(/\d+/g, "") || null,
-    bye: x.bye ?? null,
-    rank: x.rank ?? x.adp ?? x.overall ?? i + 1,
-  })).filter((x) => x.name);
-}
-
-export function ImportsView() {
+export function DataView() {
   const { state, dispatch } = useStore();
   const [text, setText] = useState("");
   const [name, setName] = useState("");
@@ -150,30 +110,26 @@ export function ImportsView() {
     setBusy(null);
   };
 
-  const loadSituation = (f) => {
-    const rd = new FileReader();
-    rd.onload = () => {
-      try {
-        const data = JSON.parse(String(rd.result));
-        if (data.app !== "draftboard-situation" || !data.teams) throw new Error("not a situation file");
-        const n = Object.keys(data.teams).length;
-        if (!n) throw new Error("no teams in file");
-        dispatch({ type: "APPLY_SITUATION", teams: data.teams, meta: { statsSeason: data.statsSeason, scheduleSeason: data.scheduleSeason } });
-        setMsg(`Situation ratings applied from ${n} teams (${data.statsSeason} data, SOS ${data.scheduleSeason}).`);
-      } catch (e) { setMsg("Situation file failed: " + e.message); }
-    };
-    rd.readAsText(f);
-  };
-
   const lastSeason = new Date().getFullYear() - 1;
   const thisSeason = new Date().getFullYear();
 
   return (
     <div className="mx-auto max-w-4xl space-y-4 p-3 md:p-4">
+      <section className={card}>
+        <h2 className={h2}>Data</h2>
+        <p className="mt-1 mb-3 text-xs text-slate-500">
+          One pass over every source that can be reached. Consensus ADP and situation grades ship with the app and
+          refresh on each deploy; ESPN, Sleeper, injuries and trending are pulled live.
+        </p>
+        <Onboard compact />
+      </section>
       {msg && <div className="rounded border border-sky-500/40 bg-sky-500/10 px-3 py-2 text-sm text-sky-200">{msg}</div>}
 
       <MergeQueue />
 
+      <details className="rounded-lg border border-slate-800 bg-slate-900/30">
+        <summary className="cursor-pointer px-3 py-2 text-xs uppercase tracking-wide text-slate-400 hover:text-slate-200">Import a file, paste a list, or load a CSV export</summary>
+        <div className="p-1">
       <section className={card}>
         <h2 className={h2}>Import rankings / ADP / projections</h2>
         <p className="mt-1 text-xs text-slate-500">
@@ -200,6 +156,8 @@ export function ImportsView() {
           {preview?.error && <span className="text-xs text-red-400">Parse error: {preview.error}</span>}
         </div>
       </section>
+        </div>
+      </details>
 
       <section className={card}>
         <h2 className={h2}>Sources on the board</h2>
@@ -218,6 +176,9 @@ export function ImportsView() {
         </ul>
       </section>
 
+      <details className="rounded-lg border border-slate-800 bg-slate-900/30">
+        <summary className="cursor-pointer px-3 py-2 text-xs uppercase tracking-wide text-slate-400 hover:text-slate-200">Fetch one source at a time</summary>
+        <div className="p-1">
       <section className={card}>
         <h2 className={h2}>Live market data</h2>
         <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -259,30 +220,9 @@ export function ImportsView() {
           replacing the old ones — delete the stale ones above.
         </p>
       </section>
-
-      <section className={card}>
-        <h2 className={h2}>Situation scorecards</h2>
-        <div className="mt-2 flex flex-wrap items-center gap-2">
-          <label className="text-xs text-slate-400">
-            Load situation JSON: <input type="file" accept=".json" className="text-xs"
-              onChange={(e) => e.target.files[0] && loadSituation(e.target.files[0])} />
-          </label>
-          {state.situation && (
-            <span className="text-xs text-emerald-400">
-              ✓ {state.situation.applied} players · {state.situation.statsSeason} data · SOS {state.situation.scheduleSeason}
-            </span>
-          )}
         </div>
-        <p className="mt-2 text-[11px] text-slate-500">
-          Generate with <code className="text-slate-400">node fetch-situation.mjs</code>. Fills offense, QB, OL run/pass,
-          pace, target competition, and both SOS fields for every player whose team is known. Coach/scheme is never
-          auto-filled — it has no statistical basis. Existing grade notes are kept.
-        </p>
-        <p className="mt-1 text-[11px] text-amber-300/80">
-          Team quality reflects the last completed season, so it cannot see coaching changes, roster moves, or a QB who
-          switched teams. Only SOS is grounded in the upcoming schedule. Applying overwrites those seven sliders.
-        </p>
-      </section>
+      </details>
+
 
       <section className={card}>
         <h2 className={h2}>My rank order</h2>

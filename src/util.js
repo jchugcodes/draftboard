@@ -315,3 +315,45 @@ export function parsePastedList(text) {
   }
   return out;
 }
+
+// ---------- import row parsing (shared by the Imports tab and the loader) ----------
+export function rowsFromCSV(text) {
+  const rows = parseCSV(text);
+  if (rows.length < 2) return null;
+  const H = mapHeaders(rows[0]);
+  if (H.name === undefined) return null;
+  const statKeys = ["passYd", "passTD", "passInt", "rushYd", "rushTD", "rec", "recYd", "recTD", "fumbles", "firstDowns"];
+  const hasStats = statKeys.some((k) => H[k] !== undefined);
+  const out = [];
+  for (let i = 1; i < rows.length; i++) {
+    const r = rows[i];
+    const name = r[H.name]?.trim();
+    if (!name) continue;
+    const row = {
+      name,
+      team: H.team !== undefined ? normTeam(r[H.team]) : null,
+      pos: H.pos !== undefined ? (r[H.pos] || "").toUpperCase().replace(/\d+/g, "").replace("DEF", "DST").trim() || null : null,
+      bye: H.bye !== undefined && r[H.bye] !== "" ? parseInt(r[H.bye], 10) || null : null,
+      rank: H.rank !== undefined ? parseFloat(r[H.rank]) : i,
+    };
+    if (Number.isNaN(row.rank)) row.rank = i;
+    if (hasStats) {
+      row.statLine = {};
+      for (const k of statKeys) if (H[k] !== undefined) row.statLine[k] = parseFloat(r[H[k]]) || 0;
+    }
+    out.push(row);
+  }
+  return { rows: out, hasStats };
+}
+
+export function rowsFromJSON(text) {
+  const data = JSON.parse(text);
+  const arr = Array.isArray(data) ? data : data.players || data.rows || [];
+  return arr.map((x, i) => ({
+    name: x.name || x.player || x.full_name,
+    team: normTeam(x.team || x.tm),
+    pos: (x.pos || x.position || "").toUpperCase().replace(/\d+/g, "") || null,
+    bye: x.bye ?? null,
+    rank: x.rank ?? x.adp ?? x.overall ?? i + 1,
+  })).filter((x) => x.name);
+}

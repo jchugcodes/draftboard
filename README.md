@@ -40,63 +40,73 @@ like `jchugcodes.github.io/draftboard/` is fine. **Bump `SHELL` in
 - `dist/` — build output. Committed.
 - `gen-icons.mjs` — regenerates `public/icons/*.png`. Run manually.
 
-## Workflow
+## Using it
 
-1. **Settings** — enter league size, draft slot, starting slots (flex type,
-   superflex), scoring. Yahoo half-PPR defaults are prefilled; every field
-   overridable. Replacement level per position is shown live.
-2. **Imports** — bring in rankings/ADP as CSV, JSON, or a pasted plain list.
-   Each import is a named column. Name one ADP source "Yahoo" — it becomes the
-   reference ADP and drives the "Y vs mkt" column (Yahoo ADP minus the mean of
-   your other ADP sources: negative = your room takes him earlier than the
-   market). Sources older than 7 days get a stale warning.
-3. Optionally import a **stat-projections CSV** (columns like pass_yds,
-   rush_td, rec…). Projections are re-scored under *your* scoring rules and
-   drive Proj + VOR. Without one, Pts≈ falls back to a generic positional
-   curve and is labeled as approximate.
-4. **Fetch Sleeper projections + ADP** for real stat projections (scored under
-   your rules, so Proj/VOR stop using the fallback curve) plus a half-PPR ADP
-   column, in one call. **Sync Sleeper** for injury status, age/experience, and
-   trending adds/drops.
-   **Fetch nflverse** last-season stats for the advanced panel (target share,
-   air-yards share, WOPR, aDOT, carry share, goal-line context) and
-   vacated-opportunity math (last-season volume of players who changed teams,
-   per current Sleeper rosters).
-5. **Board** — drag rows (or `[` `]` / shift+↑↓) to build your order, 1–5 to
-   tag, `/` to search, Enter for the detail panel (notes, handcuff link,
-   situation scorecard, advanced stats, news links). `#` is overall board rank
-   and `Pos#` is the rank within position, both in *your* order.
+Four tabs: **Board**, **Compare**, **History**, **Setup**.
 
-   Tiers work like the divider stick at a checkout belt: drag **⠿ drag divider**
-   from the toolbar onto a player to drop a break above him, drag an existing
-   bar to move it, type into the bar to name the tier, and `✕` pulls it out
-   (merging into the tier above). `t` toggles a break above the selected row and
-   "Suggest tiers" cuts on consensus gaps. Tiers belong to the view you cut them
-   in — filter to RB and you are editing RB tiers, and clearing them leaves the
-   full-board tiers alone.
-6. **Settings → Export board JSON** to move between phone and desktop.
+**First open** — the board offers one button, *Load everything*. It pulls ESPN
+ranks + ADP, Sleeper projections + ADP, injuries and trending, plus the consensus
+ADP and situation grades that ship with the app. Each step reports separately, so
+a provider being down costs you that column and nothing else. There is no file to
+download and nothing to run in a terminal.
 
-## Getting ADP in
+**Board** — drag rows (or `[` `]` / shift+↑↓) to build your order, 1–5 to tag,
+`/` to search, Enter for the detail panel. `#` is overall rank and `Pos#` is rank
+within position, both in *your* order.
 
-`npm run adp` pulls consensus ADP from the Fantasy Football Calculator public
-API and writes `adp-<format>-<teams>.csv` in the Imports format
-(`name,team,pos,bye,rank`). Load it via **Imports → CSV**.
+The **View** picker is a lens: switch it to ESPN, Sleeper, consensus or any other
+source and the board re-sorts through that source's eyes, with ▲▼ on every row
+showing how far the player moves from where you have him. Dragging and tiers
+pause while a lens is on.
+
+Tiers work like the divider stick at a checkout belt: drag **⠿ drag divider**
+onto a player to cut above him, drag a bar to move it, type in the bar to name
+the tier, `✕` pulls it out. Tiers belong to the view you cut them in — filter to
+RB and you are editing RB tiers.
+
+**Compare** — every source as a column, sorted by disagreement. Green means a
+site ranks him later than you (you can wait), red means they are higher (you
+would reach). The top of that list is where your board actually differs from the
+market.
+
+**History** — snapshots as you edit, plus named saves. See what changed between
+versions and restore any of them.
+
+**Setup** — league rules and scoring, the data loader, manual imports behind a
+disclosure, bye collisions, and vacated opportunity.
+
+## Data
+
+Two datasets need a server, so CI bakes them into the deploy
+(`npm run data` → `public/data/`) and the app reads them from its own origin:
+consensus ADP from Fantasy Football Calculator, and situation scorecard ratings.
+Every deploy is therefore a data refresh. If a provider is down at build time the
+step is skipped and the app falls back to its live sources.
+
+Live in-app: ESPN (ranks + ADP), Sleeper (projections, ADP, injuries, trending).
+
+Yahoo and FantasyPros are not fetched directly — Yahoo's API needs a registered
+OAuth app and FantasyPros' needs a paid key, both refuse anonymous requests, and
+scraping their pages is against their terms. Export a CSV from either and import
+it under Setup → Data and it becomes just another column.
+
+Until you reorder a row yourself, importing re-seeds the board in consensus
+order; after that your order is yours and imports only add columns.
+
+## Regenerating baked data
+
+`npm run data` runs both generators and writes `public/data/`. CI does this
+before every build, so you rarely need it locally.
 
 ```bash
-npm run adp                                  # half-PPR, 12-team, current year
-node fetch-adp.mjs --teams=10 --format=ppr
-node fetch-adp.mjs --year=2025 --out=last-year.csv
+npm run data                                 # both datasets for this season
+node fetch-adp.mjs --teams=10 --format=ppr   # ADP only
+node fetch-situation.mjs --season=2027       # situation only
 ```
 
-Formats: `half-ppr`, `ppr`, `standard`, `2qb`, `dynasty`, `rookie`.
-
-It runs locally rather than in the app because the API sends no CORS headers.
-Output is gitignored — it goes stale, so re-run it rather than committing it.
-
-FFC is consensus ADP, not Yahoo, so it won't populate the "Y vs mkt" column on
-its own; that needs a source named exactly `Yahoo`. Note that most ranking sites
-(FantasyPros, ESPN, Yahoo, CBS) forbid scraping in their terms — use their
-official APIs or a manual export instead.
+ADP formats: `half-ppr`, `ppr`, `standard`, `2qb`, `dynasty`, `rookie`. These
+run outside the browser because neither API sends CORS headers. Output is
+gitignored — it goes stale, so regenerate rather than commit it.
 
 ## Version history
 
@@ -113,27 +123,6 @@ versions, so restoring an old order will not resurrect a deleted ADP column.
 Auto versions are culled past 30; named ones are kept. Sleeper metadata and the
 nflverse aggregate are no longer written to localStorage — they are large and
 re-fetchable, and leaving them out is what makes room for history.
-
-## Ranking sources
-
-| Source | How | Gives |
-| --- | --- | --- |
-| Sleeper | in-app button | stat projections + half-PPR ADP |
-| ESPN | in-app button | ESPN's own PPR draft ranks + ESPN ADP |
-| Fantasy Football Calculator | `npm run adp` | consensus ADP from real mock drafts |
-| Yahoo / FantasyPros / anything else | export a CSV, load it on Imports | whatever the file has |
-
-Every source becomes its own column on the board, and the detail panel plots them
-all on one scale against your rank ("Where the sites have him") so you can see
-who you are high or low on at a glance.
-
-Yahoo and FantasyPros are not fetched directly: Yahoo's Fantasy API needs a
-registered OAuth app and FantasyPros' API needs a paid key — both return 401/403
-to anonymous requests, and scraping their pages instead is against their terms.
-Exporting a CSV from either and importing it works fine.
-
-Until you reorder a row yourself, importing re-seeds the board in consensus
-order; after that your order is yours and imports only add columns.
 
 ## Situation scorecards
 

@@ -1,0 +1,14 @@
+{
+  "generated": "2026-08-21T19:19:36.389Z",
+  "season": 2026,
+  "sets": {
+    "adp": {
+      "file": "data/adp.csv",
+      "ok": true
+    },
+    "situation": {
+      "file": "data/situation.json",
+      "ok": true
+    }
+  }
+}

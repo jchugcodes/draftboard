@@ -20,7 +20,7 @@ window.eval(code);
 await new Promise((r) => setTimeout(r, 100));
 
 const text = window.document.body.textContent;
-const must = ["Your board is empty", "Board", "Imports", "Byes", "Vacated", "Settings"];
+const must = ["Set up your board", "Board", "Compare", "History", "Setup"];
 let fails = 0;
 for (const m of must) if (!text.includes(m)) { console.log("MISSING:", m); fails++; }
 
@@ -31,15 +31,19 @@ const click = (label) => {
   if (!b) { console.log("no button:", label); fails++; return; }
   b.dispatchEvent(new window.Event("click", { bubbles: true }));
 };
-for (const t of ["Settings", "Imports", "Byes", "Vacated"]) {
+for (const t of ["Compare", "History", "Setup"]) {
   click(t);
   await new Promise((r) => setTimeout(r, 30));
 }
 const t2 = window.document.body.textContent;
-if (!t2.includes("Vacated opportunity by team")) { console.log("Vacated view didn't render"); fails++; }
-click("Settings");
-await new Promise((r) => setTimeout(r, 30));
-if (!window.document.body.textContent.includes("Replacement level")) { console.log("Settings view didn't render"); fails++; }
+// Setup composes what used to be four tabs — all of it should be on the one page.
+for (const m of ["Replacement level", "Data", "Vacated opportunity by team"]) {
+  if (!t2.includes(m)) { console.log("Setup missing:", m); fails++; }
+}
+// The one-button loader is the only entry point that should be prominent.
+if (!t2.includes("Load everything") && !t2.includes("Refresh all data")) {
+  console.log("no bootstrap button on Setup"); fails++;
+}
 
 console.log(fails ? fails + " SMOKE FAILURES" : "SMOKE PASS — app mounts, tabs render");
 process.exit(fails ? 1 : 0);

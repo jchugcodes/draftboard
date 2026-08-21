@@ -3,6 +3,7 @@ import { useStore } from "./store.jsx";
 import { computeBoard, suggestTierBreaks } from "./compute.js";
 import { POS_STYLE, POSITIONS, TAGS, fmt, pct, daysAgo } from "./util.js";
 import { newsRSSUrl, fetchRSSHeadlines } from "./fetchers.js";
+import Onboard from "./onboard.jsx";
 
 const posStyle = (pos) => POS_STYLE[pos] || POS_STYLE.DST;
 
@@ -404,7 +405,12 @@ export default function Board() {
     if (q) rows = rows.filter((r) => r.p.name.toLowerCase().includes(q) || (r.p.team || "").toLowerCase().includes(q));
     if (posFilter) rows = rows.filter((r) => r.p.pos === posFilter);
     if (tagFilter) rows = rows.filter((r) => r.p.tags.includes(tagFilter));
-    if (sortKey !== "my") {
+    // A lens sorts the board through someone else's eyes. Source lenses are
+    // keyed "src:<id>"; everything else is a derived column.
+    if (sortKey.startsWith("src:")) {
+      const sid = sortKey.slice(4);
+      rows = rows.slice().sort((a, b2) => (a.perSource[sid] ?? 1e9) - (b2.perSource[sid] ?? 1e9));
+    } else if (sortKey !== "my") {
       const get = {
         consensus: (r) => r.consensus ?? 1e9, sigma: (r) => -(r.sigma ?? -1),
         yahooDelta: (r) => r.yahooDelta ?? 1e9, adpDelta: (r) => r.adpDelta ?? 1e9,
@@ -514,19 +520,7 @@ export default function Board() {
     touch.current = null;
   };
 
-  if (!board.rows.length) {
-    return (
-      <div className="mx-auto max-w-md p-8 text-center">
-        <div className="text-4xl">📋</div>
-        <h2 className="mt-3 text-lg font-semibold">Your board is empty</h2>
-        <p className="mt-2 text-sm text-slate-400">
-          Import a rankings source, an ADP export, or paste a list from the Imports tab to seed players.
-        </p>
-        <button onClick={() => dispatch({ type: "SET_TAB", tab: "imports" })}
-          className="mt-4 rounded bg-sky-600 px-4 py-2 text-sm font-medium hover:bg-sky-500">Go to Imports</button>
-      </div>
-    );
-  }
+  if (!board.rows.length) return <Onboard />;
 
   const sourceCols = [...board.rankSources, ...board.adpSources];
   const th = "px-2 py-1.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-400 whitespace-nowrap";
@@ -534,6 +528,15 @@ export default function Board() {
     <button title={title} onClick={() => setSortKey(sortKey === key ? "my" : key)}
       className={sortKey === key ? "text-sky-300" : "hover:text-slate-200"}>{label}{sortKey === key ? " ↓" : ""}</button>
   );
+
+  // How far this player sits from where I have him, in the current lens.
+  // Positive = the lens likes him more than I do.
+  const lensPos = new Map(visible.map((r, i) => [r.id, i + 1]));
+  const lensMove = (r) => (sortKey === "my" ? null : r.myRank - lensPos.get(r.id));
+  const lensName = sortKey === "my" ? null
+    : sortKey === "consensus" ? "consensus"
+    : sortKey.startsWith("src:") ? (sourceCols.find((s) => `src:${s.id}` === sortKey)?.name ?? "source")
+    : sortKey;
 
   let lastTier = 0;
 
@@ -568,6 +571,15 @@ export default function Board() {
               </button>
             ))}
             <span className="grow" />
+            <label className="flex items-center gap-1 text-[11px] text-slate-500">
+              View
+              <select value={sortKey} onChange={(e) => setSortKey(e.target.value)}
+                className="rounded border border-slate-700 bg-slate-900 px-1.5 py-1 text-xs text-slate-200">
+                <option value="my">My order</option>
+                <option value="consensus">Consensus</option>
+                {sourceCols.map((s) => <option key={s.id} value={`src:${s.id}`}>{s.name}</option>)}
+              </select>
+            </label>
             <span draggable onDragStart={(e) => onDragStart(e, "new", "newTier")}
               title="Drag onto a player to drop a tier divider above him"
               className="hidden cursor-grab select-none items-center gap-1 rounded border border-dashed border-slate-600 px-2 py-1 text-xs text-slate-400 hover:border-sky-500 hover:text-sky-300 active:cursor-grabbing md:inline-flex">
@@ -588,7 +600,10 @@ export default function Board() {
               className="rounded border border-slate-700 px-2 py-1 text-xs text-slate-300 hover:border-sky-500">→ consensus order</button>
           </div>
           {sortKey !== "my" && (
-            <div className="mt-1 text-[11px] text-slate-500">Sorted by column — drag &amp; tiers paused. <button className="text-sky-400" onClick={() => setSortKey("my")}>Back to my order</button></div>
+            <div className="mt-1 text-[11px] text-slate-400">
+              Viewing through <span className="text-sky-300">{lensName}</span> — ▲▼ shows how far each player moves from your order.
+              Dragging and tiers are paused. <button className="text-sky-400" onClick={() => setSortKey("my")}>Back to my order</button>
+            </div>
           )}
         </div>
 
@@ -660,7 +675,14 @@ export default function Board() {
                       onClick={() => setSelected(r.id)}
                       onDoubleClick={() => setDetail(r.id)}
                       className={`cursor-pointer border-b border-slate-800/60 hover:bg-slate-900 ${sel ? "bg-sky-500/10 ring-1 ring-inset ring-sky-500/40" : ""}`}>
-                      <td className="px-2 py-1 tabular-nums text-slate-500">{r.myRank}</td>
+                      <td className="px-2 py-1 tabular-nums text-slate-500">
+                        {r.myRank}
+                        {lensMove(r) != null && (
+                          <span className={`ml-1 text-[10px] ${lensMove(r) > 0 ? "text-emerald-400" : lensMove(r) < 0 ? "text-rose-400" : "text-slate-600"}`}>
+                            {lensMove(r) > 0 ? `▲${lensMove(r)}` : lensMove(r) < 0 ? `▼${-lensMove(r)}` : "="}
+                          </span>
+                        )}
+                      </td>
                       <td className={`px-2 py-1 whitespace-nowrap tabular-nums text-[11px] font-medium ${ps.text}`}>{r.p.pos}{r.posRank}</td>
                       <td className="px-2 py-1">
                         <div className="flex items-center">

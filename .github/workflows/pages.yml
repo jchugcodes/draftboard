@@ -26,6 +26,10 @@ jobs:
           cache: npm
       - run: npm ci --include=dev
       - run: npm test
+      # Bake ADP + situation data into the deploy. Non-fatal: the app falls
+      # back to its live sources if a provider is down at build time.
+      - run: npm run data
+        continue-on-error: true
       - run: npm run build
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

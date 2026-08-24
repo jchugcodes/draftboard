@@ -1,5 +1,5 @@
 import { parseCSV, mapHeaders, parsePastedList, normName, similarity, findCandidates, playerKey, normTeam, migrateTierBreaks, consensusOrder, addTierBreak, removeTierBreak, moveTierBreak, boardSnapshot, diffSnapshots, summarizeDiff, sourceFreshness } from "./src/util.js";
-import { scoreProjection, DEFAULT_SCORING, replacementLevels, suggestTierBreaks, stddev, quintileRatings, targetCompRating } from "./src/compute.js";
+import { scoreProjection, DEFAULT_SCORING, DEFAULT_ROSTER, replacementLevels, suggestTierBreaks, stddev, quintileRatings, targetCompRating, computeBoard, inConsensus } from "./src/compute.js";
 import { aggregateNflverse, computeVacated } from "./src/fetchers.js";
 let fails = 0;
 const ok = (cond, msg) => { if (!cond) { fails++; console.log("FAIL:", msg); } };
@@ -13,6 +13,23 @@ const pl = parsePastedList("1. Justin Jefferson MIN WR\n2) Bijan Robinson - ATL 
 ok(pl.length === 3 && pl[0].team === "MIN" && pl[0].pos === "WR" && pl[0].rank === 1, JSON.stringify(pl[0]));
 ok(pl[1].name === "Bijan Robinson" && pl[1].pos === "RB", JSON.stringify(pl[1]));
 ok(pl[2].rank === 3 && pl[2].team === "DAL", JSON.stringify(pl[2]));
+
+// Yahoo's draft analysis page is the intended way to get their room's ADP in,
+// so the shapes you get from copying it have to survive the parser: title-case
+// teams, trailing ADP/auction/percent cells, and the card layout that wraps
+// "Det - RB" onto its own line.
+const yTab = parsePastedList("Jahmyr Gibbs Det - RB\t1.4\t1.0\t$73.7\t100%\nJames Cook III Buf - RB\t9.8\t1.0\t$53.6\t99%");
+ok(yTab.length === 2, "yahoo table rows: " + yTab.length);
+ok(yTab[0].name === "Jahmyr Gibbs" && yTab[0].team === "DET" && yTab[0].pos === "RB", "yahoo tab row " + JSON.stringify(yTab[0]));
+ok(yTab[1].name === "James Cook III" && yTab[1].team === "BUF", "suffix survives " + JSON.stringify(yTab[1]));
+const yWrap = parsePastedList("Jahmyr Gibbs\nDet - RB\nBijan Robinson\nAtl - RB");
+ok(yWrap.length === 2, "wrapped team/pos lines merge upward, got " + yWrap.length);
+ok(yWrap[0].team === "DET" && yWrap[0].pos === "RB" && yWrap[1].name === "Bijan Robinson", "yahoo card layout " + JSON.stringify(yWrap));
+const yRank = parsePastedList("1 Jahmyr Gibbs Det - RB\n2 Bijan Robinson Atl - RB");
+ok(yRank[0].rank === 1 && yRank[0].team === "DET" && yRank[1].rank === 2, "yahoo ranked list " + JSON.stringify(yRank[0]));
+// A leading token that happens to spell a team code is part of the name.
+const frag = parsePastedList("No Huddle Ne - RB");
+ok(frag[0].name === "No Huddle" && frag[0].team === "NE", "leading team-like token stays in the name: " + JSON.stringify(frag[0]));
 
 ok(normName("A.J. Brown Jr.") === "a j brown", normName("A.J. Brown Jr."));
 ok(similarity(normName("Kenneth Walker III"), normName("Kenneth Walker")) > 0.9, "walker sim");
@@ -160,6 +177,27 @@ ok(sourceFreshness([src("a", 40)], NOW).days === 40, "day count is absolute");
 // A source dated in the future (clock skew) must not render as negative days.
 ok(sourceFreshness([src("a", -2)], NOW).days === 0, "future-dated source clamps to today");
 ok(sourceFreshness([src("a", 1), { id: "x", name: "junk", date: "not a date", map: {} }], NOW).newest.name === "a", "unparseable dates ignored");
+
+// Cons averages whichever sources are flagged in, not "the rankings sources".
+// The old behaviour meant a default board's consensus was one site's list.
+const cbPlayer = (id, name, pos) => [id, { id, name, pos, team: "DET", bye: 5, tags: [], notes: "", handcuffOf: null,
+  scorecard: { offense: 3, olineRun: 3, olinePass: 3, qb: 3, targetComp: 3, scheme: 3, pace: 3, sosSeason: 3, sosPlayoff: 3, projected: true, note: "" }, sleeper: null, nfl: null }];
+const cbState = (sources) => ({
+  players: Object.fromEntries([cbPlayer("a|RB", "A Back", "RB")]),
+  myRanks: ["a|RB"], sources,
+  settings: { roster: { ...DEFAULT_ROSTER }, scoring: { ...DEFAULT_SCORING } },
+});
+const cbSrc = (id, type, v, extra = {}) => ({ id, name: id, type, date: new Date().toISOString(), map: { "a|RB": v }, ...extra });
+const consOf = (sources) => computeBoard(cbState(sources)).rows[0].consensus;
+ok(consOf([cbSrc("espn", "ranks", 10), cbSrc("yahoo", "adp", 20)]) === 15, "ADP now counts toward Cons: " + consOf([cbSrc("espn", "ranks", 10), cbSrc("yahoo", "adp", 20)]));
+ok(consOf([cbSrc("espn", "ranks", 10), cbSrc("yahoo", "adp", 20, { consensus: false })]) === 10, "an unticked source drops out");
+ok(consOf([cbSrc("espn", "ranks", 10, { consensus: false }), cbSrc("yahoo", "adp", 20)]) === 20, "ranks sources can be excluded too");
+ok(consOf([cbSrc("espn", "ranks", 10), cbSrc("p", "proj", 3)]) === 10, "projections never count");
+ok(consOf([cbSrc("espn", "ranks", 10, { consensus: false })]) === null, "excluding everything yields no consensus");
+ok(inConsensus(cbSrc("x", "adp", 1)) && !inConsensus(cbSrc("x", "proj", 1)), "inConsensus predicate");
+// Seeding order reads the same flag, so a fresh board and its Cons agree.
+const seedSrcs = [{ id: "s", type: "adp", map: { x: 1, y: 2 }, consensus: false }, { id: "r", type: "ranks", map: { x: 9, y: 1 } }];
+ok(JSON.stringify(consensusOrder(["x", "y"], seedSrcs)) === '["y","x"]', "consensusOrder honours the flag");
 
 console.log(fails ? `${fails} FAILURES` : "ALL TESTS PASS");
 process.exit(fails ? 1 : 0);

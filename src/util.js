@@ -67,10 +67,12 @@ export function migrateTierBreaks(s) {
 
 // Order ids by mean rank across every opinion source. Players nobody ranked sink
 // to the bottom in their existing order rather than jumping to the top.
+// Honours the same per-source consensus flag the Cons column reads, so the order
+// a fresh board arrives in and the number it is measured against agree.
 export function consensusOrder(ids, sources) {
   const vals = {};
   for (const s of sources || []) {
-    if (s.type === "proj") continue;
+    if (s.type === "proj" || s.consensus === false) continue;
     for (const [pid, v] of Object.entries(s.map || {})) {
       if (v == null) continue;
       (vals[pid] ||= []).push(Number(v));
@@ -297,13 +299,28 @@ export function mapHeaders(headerRow) {
 // ---------- paste-a-list parser ----------
 // Handles lines like: "1. Justin Jefferson MIN WR1", "Bijan Robinson, ATL RB",
 // "12) CeeDee Lamb - DAL (7)". Rank = value found or line order.
-const POS_RE = /\b(QB|RB|WR|TE|K|DST|DEF|D\/ST)\s*\d{0,2}\b/i;
+//
+// Also handles what you get from copying a rendered table — Yahoo's draft
+// analysis page in particular, which writes "Jahmyr Gibbs Det - RB" with the
+// team in title case and ADP, auction cost and "% drafted" in trailing cells.
+// Title-case teams and stat columns both used to end up glued onto the name.
+//
+// No \s* before the digits: a positional suffix is written "RB1", never "RB 1",
+// and allowing the gap let the parser swallow the leading digit of an ADP
+// sitting in the next cell.
+const POS_RE = /\b(QB|RB|WR|TE|K|DST|DEF|D\/ST)\d{0,2}\b/i;
+// A bare number, an auction price, or a percentage: a stat cell, never a name.
+const STAT_TOKEN = /^[$+]?\d+(\.\d+)?%?$/;
 export function parsePastedList(text) {
   const out = [];
   const lines = text.split(/\n+/).map((l) => l.trim()).filter(Boolean);
   let order = 0;
   for (const raw of lines) {
-    let line = raw;
+    // A copied table row puts the player in the first cell and the numbers
+    // after it, so keeping only that cell is what stops ADP and auction cost
+    // from being read as part of the name.
+    let line = raw.includes("\t") ? raw.split("\t")[0].trim() : raw;
+    if (!line) continue;
     let rank = null;
     const rm = line.match(/^\s*(\d{1,3})[.)\-:\s]+/);
     if (rm) { rank = parseInt(rm[1], 10); line = line.slice(rm[0].length); }
@@ -317,11 +334,29 @@ export function parsePastedList(text) {
     }
     let team = null;
     const tokens = line.split(/[\s,\-()]+/).filter(Boolean);
+    const looksTeam = (t) => /^[A-Za-z]{2,3}$/.test(t) && NFL_TEAMS.includes(normTeam(t));
+
+    // A line holding nothing but a team and a position belongs to the player
+    // above it — that is a card layout wrapping, not a new entry. Deciding this
+    // up front is what lets the name path stay strict about leading tokens.
+    const continuation = tokens.length > 0 && tokens.every((t) => looksTeam(t) || STAT_TOKEN.test(t));
+    if (continuation || !tokens.length) {
+      const prev = out[out.length - 1];
+      const t = tokens.find(looksTeam);
+      if (prev && (t || pos)) {
+        prev.team = prev.team ?? (t ? normTeam(t) : null);
+        prev.pos = prev.pos ?? pos;
+      }
+      continue;
+    }
+
     const kept = [];
     for (const t of tokens) {
-      const u = normTeam(t);
-      if (!team && t === t.toUpperCase() && t.length >= 2 && t.length <= 3 && (NFL_TEAMS.includes(u))) team = u;
-      else if (!/^\d+$/.test(t)) kept.push(t);
+      // Team codes match case-insensitively so "Det" reads the same as "DET",
+      // but never from the first token: a leading "No" or "Ne" is far more
+      // likely to be the start of a name than New Orleans or New England.
+      if (!team && kept.length > 0 && looksTeam(t)) team = normTeam(t);
+      else if (!STAT_TOKEN.test(t)) kept.push(t);
     }
     const name = kept.join(" ").trim();
     if (!name) continue;

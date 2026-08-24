@@ -99,18 +99,40 @@ export function DataView() {
       <section className={card}>
         <h2 className={h2}>Sources on the board</h2>
         {!state.sources.length && <p className="mt-1 text-xs text-slate-500">Nothing imported yet.</p>}
+        {state.sources.length > 0 && (
+          <p className="mt-1 text-xs text-slate-500">
+            Tick a source to count it toward <strong className="text-slate-400">Cons</strong> — the number every row on
+            the board is measured against. Untick the ones whose scoring format is not your league's. Projections are
+            never included: they carry stat lines, not placements.
+          </p>
+        )}
         <ul className="mt-2 divide-y divide-slate-800">
-          {state.sources.map((s) => (
-            <li key={s.id} className="flex items-center gap-3 py-2 text-sm">
-              <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold uppercase ${s.type === "adp" ? "bg-indigo-500/20 text-indigo-300" : s.type === "proj" ? "bg-emerald-500/20 text-emerald-300" : "bg-sky-500/20 text-sky-300"}`}>{s.type}</span>
-              <span className="font-medium">{s.name}</span>
-              <span className="text-xs text-slate-500">{Object.keys(s.map).length} players · {new Date(s.date).toLocaleDateString()}</span>
-              {daysAgo(s.date) > 7 && <span className="rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-bold text-amber-300">STALE · {daysAgo(s.date)}d</span>}
-              <span className="grow" />
-              <button className="text-xs text-red-400 hover:underline" onClick={() => dispatch({ type: "DELETE_SOURCE", id: s.id })}>remove</button>
-            </li>
-          ))}
+          {state.sources.map((s) => {
+            const eligible = s.type !== "proj";
+            const on = eligible && s.consensus !== false;
+            return (
+              <li key={s.id} className="flex items-center gap-3 py-2 text-sm">
+                <input type="checkbox" checked={on} disabled={!eligible}
+                  title={eligible ? "Count this source toward Cons" : "Projections never feed Cons"}
+                  onChange={(e) => dispatch({ type: "SET_SOURCE_CONSENSUS", id: s.id, on: e.target.checked })}
+                  className="h-3.5 w-3.5 shrink-0 accent-sky-500 disabled:opacity-30" />
+                <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold uppercase ${s.type === "adp" ? "bg-indigo-500/20 text-indigo-300" : s.type === "proj" ? "bg-emerald-500/20 text-emerald-300" : "bg-sky-500/20 text-sky-300"}`}>{s.type}</span>
+                <span className={`font-medium ${on || !eligible ? "" : "text-slate-500 line-through decoration-slate-700"}`}>{s.name}</span>
+                <span className="text-xs text-slate-500">{Object.keys(s.map).length} players · {new Date(s.date).toLocaleDateString()}</span>
+                {daysAgo(s.date) > 7 && <span className="rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-bold text-amber-300">STALE · {daysAgo(s.date)}d</span>}
+                <span className="grow" />
+                <button className="text-xs text-red-400 hover:underline" onClick={() => dispatch({ type: "DELETE_SOURCE", id: s.id })}>remove</button>
+              </li>
+            );
+          })}
         </ul>
+        {state.sources.length > 0 && (
+          <p className="mt-2 text-[11px] text-slate-500">
+            {board.consSources.length === 0
+              ? "Nothing feeds Cons right now — the column will read “–” for every player."
+              : `Cons averages ${board.consSources.length} source${board.consSources.length > 1 ? "s" : ""}: ${board.consSources.map((s) => s.name).join(", ")}.`}
+          </p>
+        )}
       </section>
 
       <details className="rounded-lg border border-slate-800 bg-slate-900/30">

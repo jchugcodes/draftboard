@@ -630,6 +630,13 @@ export default function Board() {
     };
   }, [showOverlay, visible]);
 
+  // Say out loud what Cons is averaging. It used to be "the rankings sources",
+  // which on a default board is one site, and naming it is what makes a wrong
+  // set obvious instead of silently skewing every row.
+  const consLabel = board.consSources.length
+    ? `Mean of ${board.consSources.length} source${board.consSources.length > 1 ? "s" : ""}: ${board.consSources.map((s) => s.name).join(", ")}. Change which ones count on the Setup tab.`
+    : "No sources are counted toward consensus — pick some on the Setup tab.";
+
   // Compact drops every source column and every derived analytic; what is left
   // is the question you ask between picks.
   const shownSources = compact ? [] : sourceCols;
@@ -747,7 +754,7 @@ export default function Board() {
                     {s.name}{daysAgo(s.date) > 7 && <span className="text-amber-400">*</span>}
                   </th>
                 ))}
-                <th className={th}>{sortBtn("consensus", "Cons", "Mean of rankings sources, and where every source has him against my rank")}</th>
+                <th className={th}>{sortBtn("consensus", "Cons", consLabel)}</th>
                 {!compact && <>
                   <th className={th}>{sortBtn("sigma", "σ", "Std-dev across all sources — market disagreement")}</th>
                   <th className={th}>{sortBtn("yahooDelta", "Y vs mkt", "Yahoo ADP minus other-source mean. Negative: your room drafts him earlier.")}</th>

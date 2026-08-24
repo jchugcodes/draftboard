@@ -102,6 +102,13 @@ function reducer(state, action) {
       if (!draft.manualOrder) draft.myRanks = consensusOrder(draft.myRanks, draft.sources);
       return draft;
     }
+    // Whether a source counts toward the Cons column. Stored on the source
+    // rather than in settings so it travels with a board export.
+    case "SET_SOURCE_CONSENSUS": {
+      const s = draft.sources.find((x) => x.id === action.id);
+      if (s) s.consensus = action.on;
+      return draft;
+    }
     case "DELETE_SOURCE": {
       draft.sources = draft.sources.filter((s) => s.id !== action.id);
       draft.mergeQueue = draft.mergeQueue.filter((q) => q.srcId !== action.id);

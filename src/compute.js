@@ -160,11 +160,19 @@ export function targetCompRating(tgtShare) {
 
 // ---------- derived board metrics ----------
 // Builds the full computed row set used by both table and cards.
+// Which sources the Cons column averages. Consensus used to mean "the rankings
+// sources", which on a default board is one site — ADP columns, including the
+// half-PPR ones, counted for nothing. Now it is whatever you say it is, per
+// source, and an unset flag means yes so existing boards widen rather than
+// break. Projections carry stat lines, not placements, so they never qualify.
+export const inConsensus = (s) => s.type !== "proj" && s.consensus !== false;
+
 export function computeBoard(state) {
   const { players, myRanks, sources, settings } = state;
   const rankSources = sources.filter((s) => s.type === "ranks");
   const adpSources = sources.filter((s) => s.type === "adp");
   const projSources = sources.filter((s) => s.type === "proj");
+  const consSources = sources.filter(inConsensus);
   const yahoo = adpSources.find((s) => /yahoo/i.test(s.name));
   const otherADP = adpSources.filter((s) => s !== yahoo);
 
@@ -201,8 +209,9 @@ export function computeBoard(state) {
     const myRank = i + 1;
     posSeen[p.pos] = (posSeen[p.pos] || 0) + 1;
     const posRank = posSeen[p.pos];
+    const consVals = consSources.map((s) => s.map[id]).filter((v) => v != null);
+    const consensus = consVals.length ? mean(consVals) : null;
     const rankVals = rankSources.map((s) => s.map[id]).filter((v) => v != null);
-    const consensus = rankVals.length ? mean(rankVals) : null;
     const adpVals = adpSources.map((s) => s.map[id]).filter((v) => v != null);
     const yahooADP = yahoo ? yahoo.map[id] ?? null : null;
     const otherVals = otherADP.map((s) => s.map[id]).filter((v) => v != null);
@@ -221,5 +230,5 @@ export function computeBoard(state) {
     };
   }).filter(Boolean);
 
-  return { rows, replacement, replRank, hasProj: !!proj, yahooSource: yahoo, adpSources, rankSources };
+  return { rows, replacement, replRank, hasProj: !!proj, yahooSource: yahoo, adpSources, rankSources, consSources };
 }

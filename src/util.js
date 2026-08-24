@@ -6,6 +6,21 @@ export const fmt = (n, d = 1) =>
 export const pct = (n) => (n === null || n === undefined || Number.isNaN(n) ? "–" : (n * 100).toFixed(1) + "%");
 export const daysAgo = (iso) => Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
 
+// How current the board is, as one summary of every imported source. The
+// newest source is what "as of" means: a board is only as fresh as its most
+// recent pull, and the per-source STALE markers cover the laggards.
+// `now` is injectable so this is testable without freezing the clock.
+export function sourceFreshness(sources, now = Date.now()) {
+  const dated = (sources || []).filter((s) => s && s.date && !Number.isNaN(new Date(s.date).getTime()));
+  if (!dated.length) return null;
+  const newest = dated.reduce((a, b) => (new Date(b.date) > new Date(a.date) ? b : a));
+  const days = Math.max(0, Math.floor((now - new Date(newest.date).getTime()) / 86400000));
+  // Same 7-day threshold the per-source STALE badge uses, just with a positive
+  // state at the other end instead of only an absence of warning.
+  const level = days === 0 ? "today" : days < 7 ? "recent" : "stale";
+  return { newest, days, level, stale: (sources || []).filter((s) => daysAgo(s.date) > 7) };
+}
+
 export const POSITIONS = ["QB", "RB", "WR", "TE", "K", "DST"];
 
 export const POS_STYLE = {

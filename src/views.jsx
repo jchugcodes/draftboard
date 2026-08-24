@@ -3,7 +3,7 @@ import { useStore, exportBoard, DEFAULT_NEWS_TEMPLATES } from "./store.jsx";
 import { rowsFromCSV, rowsFromJSON, parseCSV, mapHeaders, parsePastedList, normTeam, NFL_TEAMS, TAGS, POS_STYLE, fmt, daysAgo, uid, boardSnapshot, diffSnapshots, summarizeDiff, MAX_HISTORY } from "./util.js";
 import { computeBoard } from "./compute.js";
 import Onboard from "./onboard.jsx";
-import { fetchSleeperPlayers, fetchSleeperTrending, fetchSleeperProjections, fetchEspnRanks, nflverseURL, aggregateNflverse, computeVacated } from "./fetchers.js";
+import { useDataSync } from "./useDataSync.js";
 
 const card = "rounded-lg border border-slate-800 bg-slate-900/50 p-3 md:p-4";
 const h2 = "text-sm font-semibold uppercase tracking-wide text-slate-300";
@@ -17,9 +17,9 @@ export function DataView() {
   const [text, setText] = useState("");
   const [name, setName] = useState("");
   const [type, setType] = useState("ranks");
-  const [msg, setMsg] = useState(null);
-  const [busy, setBusy] = useState(null);
   const fileRef = useRef(null);
+  // Shared with the Board's freshness strip — one implementation of every pull.
+  const { busy, msg, setMsg, syncSleeper, fetchStats, loadStatsFile, syncProjections, syncEspn } = useDataSync();
   const board = useMemo(() => computeBoard(state), [state]);
 
   const preview = useMemo(() => {
@@ -45,69 +45,6 @@ export function DataView() {
     const rd = new FileReader();
     rd.onload = () => setText(String(rd.result));
     rd.readAsText(f);
-  };
-
-  const syncSleeper = async () => {
-    setBusy("sleeper");
-    try {
-      const meta = await fetchSleeperPlayers();
-      dispatch({ type: "SLEEPER_META", meta });
-      const [adds, drops] = await Promise.all([fetchSleeperTrending("add"), fetchSleeperTrending("drop")]);
-      dispatch({ type: "TRENDING", adds, drops });
-      setMsg("Sleeper metadata, injuries, and trending synced.");
-    } catch (e) { setMsg("Sleeper sync failed: " + e.message); }
-    setBusy(null);
-  };
-
-  const fetchStats = async (season) => {
-    setBusy("nfl");
-    try {
-      const res = await fetch(nflverseURL(season));
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const agg = aggregateNflverse(await res.text());
-      dispatch({ type: "NFLVERSE", season, agg });
-      if (state.sleeperMeta) dispatch({ type: "VACATED", vacated: computeVacated(agg, state.sleeperMeta) });
-      setMsg(`nflverse ${season} stats loaded (${Object.keys(agg.players).length} players).`);
-    } catch (e) {
-      setMsg(`nflverse fetch failed (${e.message}). Download stats_player_week_${season}.csv from the nflverse-data GitHub release and load it below.`);
-    }
-    setBusy(null);
-  };
-  const loadStatsFile = (f, season) => {
-    const rd = new FileReader();
-    rd.onload = () => {
-      try {
-        const agg = aggregateNflverse(String(rd.result));
-        dispatch({ type: "NFLVERSE", season, agg });
-        if (state.sleeperMeta) dispatch({ type: "VACATED", vacated: computeVacated(agg, state.sleeperMeta) });
-        setMsg(`Stats file loaded for ${season}.`);
-      } catch (e) { setMsg("Stats file parse failed: " + e.message); }
-    };
-    rd.readAsText(f);
-  };
-
-  const syncProjections = async (season) => {
-    setBusy("proj");
-    try {
-      const { projRows, adpRows } = await fetchSleeperProjections(season);
-      const stamp = new Date().toLocaleDateString();
-      if (projRows.length) dispatch({ type: "IMPORT", name: `Sleeper proj ${season}`, srcType: "proj", rows: projRows });
-      if (adpRows.length) dispatch({ type: "IMPORT", name: `Sleeper ADP ${stamp}`, srcType: "adp", rows: adpRows });
-      setMsg(`Sleeper ${season}: ${projRows.length} stat projections, ${adpRows.length} ADP entries imported.`);
-    } catch (e) { setMsg("Sleeper projections failed: " + e.message); }
-    setBusy(null);
-  };
-
-  const syncEspn = async (season) => {
-    setBusy("espn");
-    try {
-      const { rankRows, adpRows } = await fetchEspnRanks(season);
-      const stamp = new Date().toLocaleDateString();
-      if (rankRows.length) dispatch({ type: "IMPORT", name: `ESPN rank ${season}`, srcType: "ranks", rows: rankRows });
-      if (adpRows.length) dispatch({ type: "IMPORT", name: `ESPN ADP ${stamp}`, srcType: "adp", rows: adpRows });
-      setMsg(`ESPN ${season}: ${rankRows.length} ranks, ${adpRows.length} ADP entries imported.`);
-    } catch (e) { setMsg("ESPN fetch failed: " + e.message); }
-    setBusy(null);
   };
 
   const lastSeason = new Date().getFullYear() - 1;

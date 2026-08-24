@@ -28,12 +28,18 @@ or the shell).
 
 `dist/` is committed and self-contained. Drop it on any static host — GitHub
 Pages / Netlify / Cloudflare Pages all work. Paths are relative, so a subpath
-like `jchugcodes.github.io/draftboard/` is fine. **Bump `SHELL` in
-`public/sw.js` on every deploy** so installed clients pick up the new build.
+like `jchugcodes.github.io/draftboard/` is fine. The service worker's `SHELL`
+cache name is stamped per build by `copy-static.mjs` (from `GITHUB_SHA`, or a
+timestamp locally), so installed clients pick up every deploy on their own —
+`public/sw.js` stays the source of truth and is never edited by hand.
 
 ## Layout
 
 - `src/` — app source. Entry is `src/main.jsx`.
+  - `useDataSync.js` — every way the app pulls data, in one hook, so the Board's
+    Refresh and Setup's per-source buttons drive the same code.
+  - `rankbar.jsx` — where each source has a player on one shared scale. Renders
+    as labelled rows in the detail panel and as an inline bar in the table.
 - `public/` — the static shell (`index.html`, `sw.js`, `manifest.webmanifest`,
   `icons/`). Single source of truth; copied verbatim into `dist/` by the build.
   Its paths are dist-relative (`./app.js`), so never serve `public/` directly.
@@ -54,10 +60,34 @@ download and nothing to run in a terminal.
 `/` to search, Enter for the detail panel. `#` is overall rank and `Pos#` is rank
 within position, both in *your* order.
 
+A strip above the toolbar says how old the board is — *updated today* in green,
+a day count in amber, `STALE` in red past a week — names the newest source, and
+offers **Refresh**, which re-runs the same full pull as *Load everything*.
+
+`#` and `Cons` are the two numbers the table exists to compare, so they carry
+chip weight while the other columns stay plain. Next to `#` is your rank minus
+consensus: red means you are reaching, green means the room has him later and
+you could wait, grey means the gap is under three spots and not worth the ink.
+Next to `Cons` is a small bar putting every source on one scale — the grey band
+is where they cluster, the pale tick is the `Cons` value, the blue tick is you.
+A wide band with your tick outside it is a different decision from a tight one.
+
+**Draft day / Full** is a density switch. Draft day folds away every source
+column and every derived metric (σ, Y vs mkt, Me−ADP, Proj, VOR, Trend), leaving
+rank, position, player and consensus — the question you actually ask between
+picks. Full is the prep view. The choice persists across reloads.
+
 The **View** picker is a lens: switch it to ESPN, Sleeper, consensus or any other
 source and the board re-sorts through that source's eyes, with ▲▼ on every row
 showing how far the player moves from where you have him. Dragging and tiers
 pause while a lens is on.
+
+**Consensus overlay** is the non-destructive version of that, and is a separate
+toggle rather than a lens setting: the board stays in your order with dragging
+and tiers live, and each row gains a `c#` badge showing where consensus would
+rank that player among the same rows. The lens answers "what does ESPN's board
+look like"; the overlay answers "where does the room disagree with mine", without
+taking my list away to do it. It also persists across reloads.
 
 Tiers work like the divider stick at a checkout belt: drag **⠿ drag divider**
 onto a player to cut above him, drag a bar to move it, type in the bar to name

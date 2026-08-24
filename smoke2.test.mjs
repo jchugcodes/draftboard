@@ -39,5 +39,58 @@ const must = ["Justin Jefferson","Tier 1","Tier 2","FantasyPros","Yahoo","ESPN",
 for (const m of must) if (!text.includes(m)) { console.log("MISSING:", m); fails++; }
 // verify consensus + delta rendered as numbers not NaN
 if (text.includes("NaN")) { console.log("NaN leaked into UI"); fails++; }
-console.log(fails ? fails+" BOARD FAILURES" : "BOARD SMOKE PASS — table, tiers, sources, stale warning all render");
+
+// The freshness strip is always on when there are sources. The newest source in
+// this seed is today's, so it reads as current even though Yahoo is 9 days old.
+for (const m of ["Consensus as of", "updated today", "Refresh"]) {
+  if (!text.includes(m)) { console.log("freshness strip missing:", m); fails++; }
+}
+
+const click = (label) => {
+  const b = [...window.document.querySelectorAll("button")].find((x) => x.textContent.trim() === label);
+  if (!b) { console.log("no button:", label); fails++; return false; }
+  b.dispatchEvent(new window.Event("click", { bubbles: true }));
+  return true;
+};
+const settle = () => new Promise((r) => setTimeout(r, 60));
+
+// Read the header cells rather than body text: source names also appear as
+// options in the View lens, which stays available in either density.
+const headers = () => [...window.document.querySelectorAll("thead th")].map((n) => n.textContent.trim());
+
+const full = headers();
+for (const kept of ["#", "Pos#", "Player", "Cons", "σ", "VOR", "Trend", "FantasyPros"]) {
+  if (!full.some((h) => h.startsWith(kept))) { console.log("full density missing column:", kept, JSON.stringify(full)); fails++; }
+}
+
+// Draft-day density drops every analytical column and every source column,
+// keeping rank, position, player and consensus.
+click("Draft day");
+await settle();
+const lean = headers();
+if (lean.length !== 4) { console.log("compact should leave 4 columns, got:", JSON.stringify(lean)); fails++; }
+for (const gone of ["Y vs mkt", "Me−ADP", "VOR", "Trend", "FantasyPros", "Yahoo"]) {
+  if (lean.some((h) => h.startsWith(gone))) { console.log("compact should hide:", gone); fails++; }
+}
+const compact = window.document.body.textContent;
+for (const kept of ["Justin Jefferson", "Tier 1", "Consensus as of"]) {
+  if (!compact.includes(kept)) { console.log("compact should keep:", kept); fails++; }
+}
+
+click("Full");
+await settle();
+if (headers().length !== full.length) { console.log("Full did not restore columns"); fails++; }
+
+// Consensus overlay is additive: my order and my tiers survive, each row just
+// gains the position the room would give him.
+click("Consensus overlay");
+await settle();
+const overlaid = window.document.body.textContent;
+if (!overlaid.includes("Justin Jefferson") || !overlaid.includes("Tier 1")) {
+  console.log("overlay lost the board's own order/tiers"); fails++;
+}
+const badges = [...window.document.querySelectorAll("span[title]")].filter((n) => /Consensus would rank him/.test(n.getAttribute("title")));
+if (!badges.length) { console.log("overlay rendered no consensus-position badges"); fails++; }
+
+console.log(fails ? fails+" BOARD FAILURES" : "BOARD SMOKE PASS — table, tiers, sources, freshness, density, overlay all render");
 process.exit(fails?1:0);

@@ -1,11 +1,24 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useStore } from "./store.jsx";
 import { computeBoard, suggestTierBreaks } from "./compute.js";
-import { POS_STYLE, POSITIONS, TAGS, fmt, pct, daysAgo } from "./util.js";
+import { POS_STYLE, POSITIONS, TAGS, fmt, pct, daysAgo, sourceFreshness } from "./util.js";
+import RankBar from "./rankbar.jsx";
+import { useDataSync } from "./useDataSync.js";
 import { newsRSSUrl, fetchRSSHeadlines } from "./fetchers.js";
 import Onboard from "./onboard.jsx";
 
 const posStyle = (pos) => POS_STYLE[pos] || POS_STYLE.DST;
+
+// Every source with an opinion on one player, low rank first. Projections are
+// excluded: a stat line is not a placement, so it has no rank to plot.
+function sourceOpinions(sources, id) {
+  return (sources || [])
+    .filter((s) => s.type !== "proj")
+    .map((s) => ({ key: s.id, label: s.name, type: s.type, stale: daysAgo(s.date) > 7, value: s.map?.[id] ?? null }))
+    .filter((r) => r.value != null)
+    .sort((a, b) => a.value - b.value);
+}
+
 
 function tierOfIndex(i, breaks) {
   let t = 1;
@@ -18,6 +31,35 @@ const Delta = ({ v, invert = false, d = 1 }) => {
   const good = invert ? v > 0 : v < 0;
   const cls = Math.abs(v) < 0.5 ? "text-slate-400" : good ? "text-emerald-400" : "text-red-400";
   return <span className={cls}>{v > 0 ? "+" : ""}{fmt(v, d)}</span>;
+};
+
+// My rank minus consensus, in the convention the Compare tab established:
+// negative means I have him earlier than the room (a reach), positive means the
+// room has him earlier than I do (I could wait). Small gaps stay grey — three
+// spots of daylight is noise, not an opinion.
+const ConsGap = ({ myRank, consensus }) => {
+  if (consensus == null || Number.isNaN(consensus)) return null;
+  const g = Math.round(myRank - consensus);
+  if (g === 0) return <span className="text-[10px] text-slate-600">=</span>;
+  const cls = Math.abs(g) < 3 ? "text-slate-500" : g < 0 ? "text-rose-400" : "text-emerald-400";
+  const title = g < 0
+    ? `You have him ${-g} spots higher than consensus — reaching`
+    : `Consensus has him ${g} spots higher than you — you could wait`;
+  return <span title={title} className={`text-[10px] font-semibold tabular-nums ${cls}`}>{g > 0 ? `+${g}` : g}</span>;
+};
+
+// The consensus overlay badge: where the room's ordering would put this player
+// among the same rows on screen. Distinct from ConsGap, which compares against
+// the consensus *value* — this one is a position you could actually draft at.
+const ConsPos = ({ my, theirs }) => {
+  const move = my - theirs;
+  const cls = Math.abs(move) < 3 ? "border-slate-700 text-slate-500"
+    : move < 0 ? "border-rose-500/40 text-rose-300"
+    : "border-emerald-500/40 text-emerald-300";
+  const title = move === 0 ? "Consensus would rank him exactly here"
+    : move < 0 ? `Consensus would rank him #${theirs} — ${-move} spots later than you have him`
+    : `Consensus would rank him #${theirs} — ${move} spots earlier than you have him`;
+  return <span title={title} className={`rounded border px-1 text-[10px] tabular-nums ${cls}`}>c{theirs}</span>;
 };
 
 const InjuryBadge = ({ p }) => {
@@ -203,11 +245,7 @@ function AdvStats({ p, season }) {
 function SourceCompare({ p }) {
   const { state } = useStore();
   const myRank = state.myRanks.indexOf(p.id) + 1;
-  const rows = (state.sources || [])
-    .filter((s) => s.type !== "proj")
-    .map((s) => ({ key: s.id, label: s.name, type: s.type, stale: daysAgo(s.date) > 7, v: s.map?.[p.id] ?? null }))
-    .filter((r) => r.v != null)
-    .sort((a, b) => a.v - b.v);
+  const rows = sourceOpinions(state.sources, p.id);
 
   if (!rows.length) {
     return (
@@ -217,37 +255,13 @@ function SourceCompare({ p }) {
     );
   }
 
-  const vals = rows.map((r) => r.v);
+  const vals = rows.map((r) => r.value);
   const consensus = vals.reduce((a, b) => a + b, 0) / vals.length;
-  const lo = Math.min(...vals, myRank);
-  const hi = Math.max(...vals, myRank);
-  const span = Math.max(1, hi - lo);
-  const at = (v) => ((v - lo) / span) * 100;
   const spread = Math.max(...vals) - Math.min(...vals);
-
-  const Row = ({ label, value, delta, tone, dot, title, stale }) => (
-    <div className="flex items-center gap-2">
-      <span className={`w-24 shrink-0 truncate text-[11px] ${tone}`} title={title || label}>
-        {label}{stale && <span className="text-amber-400"> *</span>}
-      </span>
-      <span className="w-9 shrink-0 text-right text-[11px] tabular-nums text-slate-300">{fmt(value, 0)}</span>
-      <div className="relative h-1.5 min-w-0 flex-1 rounded bg-slate-800">
-        <span className={`absolute -top-[3px] h-2 w-2 -translate-x-1/2 rounded-full ${dot}`} style={{ left: `${at(value)}%` }} />
-      </div>
-      <span className={`w-9 shrink-0 text-right text-[11px] tabular-nums ${delta > 0 ? "text-emerald-400" : delta < 0 ? "text-rose-400" : "text-slate-600"}`}>
-        {delta == null ? "" : delta > 0 ? `+${fmt(delta, 0)}` : fmt(delta, 0)}
-      </span>
-    </div>
-  );
 
   return (
     <div className="space-y-1">
-      <Row label="My rank" value={myRank} delta={null} tone="font-semibold text-sky-300" dot="bg-sky-400 ring-2 ring-sky-400/30" />
-      {rows.map((r) => (
-        <Row key={r.key} label={r.label} value={r.v} delta={r.v - myRank} stale={r.stale}
-          tone="text-slate-400" dot={r.type === "adp" ? "bg-violet-400" : "bg-slate-400"}
-          title={`${r.label} · ${r.type.toUpperCase()}`} />
-      ))}
+      <RankBar myRank={myRank} sources={rows} consensus={consensus} />
       <div className="flex items-center justify-between pt-1 text-[11px] text-slate-500">
         <span>consensus {fmt(consensus, 1)} · spread {fmt(spread, 0)} across {rows.length} source{rows.length > 1 ? "s" : ""}</span>
         <span className={myRank < consensus ? "text-rose-400" : myRank > consensus ? "text-emerald-400" : ""}>
@@ -344,6 +358,49 @@ function DetailPanel({ id, onClose }) {
   );
 }
 
+// ---------------- freshness ----------------
+// A board is a snapshot of a market that moves daily, so the Board tab says out
+// loud how old the snapshot is and offers the refresh in the same breath. This
+// is deliberately always present, not only when something has gone stale — "you
+// pulled this an hour ago" is the state you most want confirmed before a pick.
+function FreshnessStrip() {
+  const { state } = useStore();
+  const { busy, msg, steps, refreshAll } = useDataSync();
+  const fresh = sourceFreshness(state.sources);
+  if (!fresh) return null;
+
+  const tone = {
+    today: "border-emerald-500/40 bg-emerald-500/15 text-emerald-300",
+    recent: "border-amber-500/40 bg-amber-500/15 text-amber-300",
+    stale: "border-red-500/40 bg-red-500/15 text-red-300",
+  }[fresh.level];
+  const pill = {
+    today: "updated today",
+    recent: `${fresh.days}d old`,
+    stale: `STALE · ${fresh.days}d`,
+  }[fresh.level];
+  const running = busy === "all";
+  const step = running && steps ? steps.find((x) => x.state === "running") : null;
+
+  return (
+    <div className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px]">
+      <span className={`rounded-full border px-2 py-0.5 font-semibold ${tone}`}>{pill}</span>
+      <span className="text-slate-400">
+        Consensus as of <span className="text-slate-200">{new Date(fresh.newest.date).toLocaleDateString()}</span>
+        <span className="text-slate-600"> · {fresh.newest.name} · {state.sources.length} source{state.sources.length > 1 ? "s" : ""}</span>
+      </span>
+      <span className="grow" />
+      {running && step && <span className="truncate text-slate-500">{step.label}…</span>}
+      {!running && msg && <span className="truncate text-slate-500">{msg}</span>}
+      <button onClick={() => refreshAll()} disabled={running}
+        title="Re-pull every source the app can reach — the same run as Setup's one button"
+        className="rounded border border-slate-700 px-2 py-0.5 text-slate-300 hover:border-sky-500 hover:text-sky-300 disabled:opacity-40">
+        {running ? "Refreshing…" : "Refresh"}
+      </button>
+    </div>
+  );
+}
+
 // ---------------- main board ----------------
 export default function Board() {
   const { state, dispatch } = useStore();
@@ -353,6 +410,13 @@ export default function Board() {
   const [tagFilter, setTagFilter] = useState(null);
   const [sortKey, setSortKey] = useState("my"); // 'my' enables drag/tiers
   const [selected, setSelected] = useState(null);
+  // Draft-day mode: everything analytical folds away and the board is reduced
+  // to rank, position, name, and where the market has him. Both of these live
+  // in the store because they are the two settings you would hate to re-pick
+  // after a mid-draft reload.
+  const compact = state.ui.density === "compact";
+  const overlay = !!state.ui.overlay;
+  const setUI = (patch) => dispatch({ type: "SET_UI", patch });
   const [detail, setDetail] = useState(null);
   const searchRef = useRef(null);
   const dragItem = useRef(null);
@@ -398,6 +462,19 @@ export default function Board() {
   }, []);
 
   const staleSources = state.sources.filter((s) => daysAgo(s.date) > 7);
+
+  // Metadata for the inline rank bars, hoisted out of the row loop: the values
+  // themselves already sit on each row as perSource.
+  const barSources = useMemo(
+    () => (state.sources || [])
+      .filter((s) => s.type !== "proj")
+      .map((s) => ({ key: s.id, label: s.name, type: s.type, stale: daysAgo(s.date) > 7 })),
+    [state.sources]
+  );
+  const opinionsFor = (r) => barSources
+    .map((s) => ({ ...s, value: r.perSource[s.key] ?? null }))
+    .filter((o) => o.value != null)
+    .sort((a, b) => a.value - b.value);
 
   const visible = useMemo(() => {
     let rows = board.rows;
@@ -538,6 +615,26 @@ export default function Board() {
     : sortKey.startsWith("src:") ? (sourceCols.find((s) => `src:${s.id}` === sortKey)?.name ?? "source")
     : sortKey;
 
+  // Consensus overlay: the ordering the room would use over exactly the rows on
+  // screen, so it stays comparable when a position filter is on. This is the
+  // ordinal, which is a different fact from the consensus value in the Cons
+  // cell — one says "the room's 15th player", the other "their mean is 15.4".
+  // Rows no source has an opinion on sort last rather than vanishing.
+  const showOverlay = overlay && sortKey === "my";
+  const { consensusPos, myPos } = useMemo(() => {
+    if (!showOverlay) return { consensusPos: null, myPos: null };
+    const ordered = visible.slice().sort((a, b) => (a.consensus ?? 1e9) - (b.consensus ?? 1e9));
+    return {
+      consensusPos: new Map(ordered.map((r, i) => [r.id, r.consensus == null ? null : i + 1])),
+      myPos: new Map(visible.map((r, i) => [r.id, i + 1])),
+    };
+  }, [showOverlay, visible]);
+
+  // Compact drops every source column and every derived analytic; what is left
+  // is the question you ask between picks.
+  const shownSources = compact ? [] : sourceCols;
+  const colCount = 4 + shownSources.length + (compact ? 0 : 6);
+
   let lastTier = 0;
 
   // min-h-full, not h-full: a sticky child can only travel inside its
@@ -549,6 +646,7 @@ export default function Board() {
       <div className="min-w-0 flex-1">
         {/* toolbar */}
         <div ref={toolbarRef} className="sticky top-0 z-20 border-b border-slate-800 bg-slate-950/95 px-2 py-2 backdrop-blur md:px-3">
+          <FreshnessStrip />
           {staleSources.length > 0 && (
             <div className="mb-2 rounded border border-amber-500/40 bg-amber-500/10 px-2 py-1 text-xs text-amber-300">
               ⚠ {staleSources.map((s) => s.name).join(", ")} {staleSources.length > 1 ? "are" : "is"} more than 7 days old — re-import before drafting.
@@ -580,6 +678,24 @@ export default function Board() {
                 {sourceCols.map((s) => <option key={s.id} value={`src:${s.id}`}>{s.name}</option>)}
               </select>
             </label>
+            {/* Not part of the View lens on purpose: the lens replaces the sort,
+                this leaves my order alone and writes the room's opinion beside it. */}
+            <button onClick={() => setUI({ overlay: !overlay })}
+              title="Keep my order and my dragging, and label each row with where consensus would have him"
+              className={`rounded border px-2 py-1 text-xs ${overlay ? "border-sky-500 bg-sky-500/10 text-sky-300" : "border-slate-700 text-slate-300 hover:border-sky-500"}`}>
+              {overlay ? "✓ " : ""}Consensus overlay
+            </button>
+            <div className="flex overflow-hidden rounded border border-slate-700 text-xs">
+              {[["full", "Full"], ["compact", "Draft day"]].map(([k, label]) => (
+                <button key={k} onClick={() => setUI({ density: k })}
+                  title={k === "compact"
+                    ? "Rank, position, player, consensus. Everything analytical folds away for while picks are flying."
+                    : "Every source column and every derived metric — the prep view."}
+                  className={`px-2 py-1 ${state.ui.density === k ? "bg-slate-800 font-medium text-slate-100" : "text-slate-400 hover:text-slate-200"}`}>
+                  {label}
+                </button>
+              ))}
+            </div>
             <span draggable onDragStart={(e) => onDragStart(e, "new", "newTier")}
               title="Drag onto a player to drop a tier divider above him"
               className="hidden cursor-grab select-none items-center gap-1 rounded border border-dashed border-slate-600 px-2 py-1 text-xs text-slate-400 hover:border-sky-500 hover:text-sky-300 active:cursor-grabbing md:inline-flex">
@@ -602,7 +718,14 @@ export default function Board() {
           {sortKey !== "my" && (
             <div className="mt-1 text-[11px] text-slate-400">
               Viewing through <span className="text-sky-300">{lensName}</span> — ▲▼ shows how far each player moves from your order.
-              Dragging and tiers are paused. <button className="text-sky-400" onClick={() => setSortKey("my")}>Back to my order</button>
+              Dragging and tiers are paused{overlay ? ", and the overlay badge is off while a lens is doing the same job" : ""}.
+              {" "}<button className="text-sky-400" onClick={() => setSortKey("my")}>Back to my order</button>
+            </div>
+          )}
+          {showOverlay && (
+            <div className="mt-1 text-[11px] text-slate-400">
+              Your order, your tiers, your dragging — <span className="text-sky-300">c#</span> on each row is where consensus
+              would have him among these players instead. <button className="text-sky-400" onClick={() => setUI({ overlay: false })}>Hide overlay</button>
             </div>
           )}
         </div>
@@ -619,18 +742,20 @@ export default function Board() {
                 <th className={th}>#</th>
                 <th className={th} title="Rank within position, in my order">Pos#</th>
                 <th className={th}>Player</th>
-                {sourceCols.map((s) => (
+                {shownSources.map((s) => (
                   <th key={s.id} className={th} title={`${s.type.toUpperCase()} · imported ${new Date(s.date).toLocaleDateString()}${daysAgo(s.date) > 7 ? " · STALE" : ""}`}>
                     {s.name}{daysAgo(s.date) > 7 && <span className="text-amber-400">*</span>}
                   </th>
                 ))}
-                <th className={th}>{sortBtn("consensus", "Cons", "Mean of rankings sources")}</th>
-                <th className={th}>{sortBtn("sigma", "σ", "Std-dev across all sources — market disagreement")}</th>
-                <th className={th}>{sortBtn("yahooDelta", "Y vs mkt", "Yahoo ADP minus other-source mean. Negative: your room drafts him earlier.")}</th>
-                <th className={th}>{sortBtn("adpDelta", "Me−ADP", "My rank minus Yahoo ADP. Negative: I'm higher than the room.")}</th>
-                <th className={th}>{sortBtn("pts", board.hasProj ? "Proj" : "Pts≈", board.hasProj ? "From your projections source × your scoring" : "Approximate curve — import projections for real numbers")}</th>
-                <th className={th}>{sortBtn("vor", "VOR", "Value over replacement given your roster settings")}</th>
-                <th className={th}>Trend</th>
+                <th className={th}>{sortBtn("consensus", "Cons", "Mean of rankings sources, and where every source has him against my rank")}</th>
+                {!compact && <>
+                  <th className={th}>{sortBtn("sigma", "σ", "Std-dev across all sources — market disagreement")}</th>
+                  <th className={th}>{sortBtn("yahooDelta", "Y vs mkt", "Yahoo ADP minus other-source mean. Negative: your room drafts him earlier.")}</th>
+                  <th className={th}>{sortBtn("adpDelta", "Me−ADP", "My rank minus Yahoo ADP. Negative: I'm higher than the room.")}</th>
+                  <th className={th}>{sortBtn("pts", board.hasProj ? "Proj" : "Pts≈", board.hasProj ? "From your projections source × your scoring" : "Approximate curve — import projections for real numbers")}</th>
+                  <th className={th}>{sortBtn("vor", "VOR", "Value over replacement given your roster settings")}</th>
+                  <th className={th}>Trend</th>
+                </>}
               </tr>
             </thead>
             <tbody>
@@ -649,7 +774,7 @@ export default function Board() {
                         onDragStart={(e) => onDragStart(e, breakIdx ?? 0, "tier")}
                         onDragOver={(e) => e.preventDefault()} onDrop={(e) => onDropRow(e, r.id)}
                         className="group cursor-grab select-none bg-slate-900/80">
-                        <td colSpan={12 + sourceCols.length} className="border-y border-slate-700/60 px-2 py-1 text-[11px] font-bold uppercase tracking-widest text-slate-400">
+                        <td colSpan={colCount} className="border-y border-slate-700/60 px-2 py-1 text-[11px] font-bold uppercase tracking-widest text-slate-400">
                           <div className="flex items-center gap-2">
                             <span className="shrink-0">⠿ Tier {tier}</span>
                             <input value={tierNames[tier] ?? ""} placeholder="name this tier"
@@ -675,13 +800,22 @@ export default function Board() {
                       onClick={() => setSelected(r.id)}
                       onDoubleClick={() => setDetail(r.id)}
                       className={`cursor-pointer border-b border-slate-800/60 hover:bg-slate-900 ${sel ? "bg-sky-500/10 ring-1 ring-inset ring-sky-500/40" : ""}`}>
-                      <td className="px-2 py-1 tabular-nums text-slate-500">
-                        {r.myRank}
-                        {lensMove(r) != null && (
-                          <span className={`ml-1 text-[10px] ${lensMove(r) > 0 ? "text-emerald-400" : lensMove(r) < 0 ? "text-rose-400" : "text-slate-600"}`}>
-                            {lensMove(r) > 0 ? `▲${lensMove(r)}` : lensMove(r) < 0 ? `▼${-lensMove(r)}` : "="}
-                          </span>
-                        )}
+                      {/* My rank and consensus are the two numbers the whole
+                          table exists to compare, so they get chip weight and
+                          everything else stays plain. */}
+                      <td className="px-2 py-1 whitespace-nowrap">
+                        <span className="inline-flex items-center gap-1">
+                          <span className="rounded bg-slate-800 px-1.5 py-0.5 text-sm font-semibold tabular-nums text-slate-100">{r.myRank}</span>
+                          <ConsGap myRank={r.myRank} consensus={r.consensus} />
+                          {showOverlay && consensusPos?.get(r.id) != null && (
+                            <ConsPos my={myPos.get(r.id)} theirs={consensusPos.get(r.id)} />
+                          )}
+                          {lensMove(r) != null && (
+                            <span className={`text-[10px] ${lensMove(r) > 0 ? "text-emerald-400" : lensMove(r) < 0 ? "text-rose-400" : "text-slate-600"}`}>
+                              {lensMove(r) > 0 ? `▲${lensMove(r)}` : lensMove(r) < 0 ? `▼${-lensMove(r)}` : "="}
+                            </span>
+                          )}
+                        </span>
                       </td>
                       <td className={`px-2 py-1 whitespace-nowrap tabular-nums text-[11px] font-medium ${ps.text}`}>{r.p.pos}{r.posRank}</td>
                       <td className="px-2 py-1">
@@ -695,16 +829,23 @@ export default function Board() {
                           {r.p.notes && <span title={r.p.notes} className="ml-1 text-[10px] text-slate-500">✎</span>}
                         </div>
                       </td>
-                      {sourceCols.map((s) => (
+                      {shownSources.map((s) => (
                         <td key={s.id} className="px-2 py-1 tabular-nums text-slate-400">{r.perSource[s.id] != null ? fmt(r.perSource[s.id], s.type === "adp" ? 1 : 0) : "–"}</td>
                       ))}
-                      <td className="px-2 py-1 tabular-nums">{fmt(r.consensus, 1)}</td>
-                      <td className={`px-2 py-1 tabular-nums ${r.sigma > 12 ? "text-fuchsia-300" : "text-slate-400"}`}>{fmt(r.sigma, 1)}</td>
-                      <td className="px-2 py-1 tabular-nums"><Delta v={r.yahooDelta} invert /></td>
-                      <td className="px-2 py-1 tabular-nums"><Delta v={r.adpDelta} d={0} /></td>
-                      <td className="px-2 py-1 tabular-nums text-slate-300">{fmt(r.pts, 0)}</td>
-                      <td className={`px-2 py-1 tabular-nums font-medium ${r.vor > 0 ? "text-emerald-300" : "text-slate-500"}`}>{fmt(r.vor, 0)}</td>
-                      <td className="px-2 py-1"><Trend p={r.p} trending={state.trending} /></td>
+                      <td className="px-2 py-1 whitespace-nowrap">
+                        <span className="inline-flex items-center gap-1.5">
+                          <span className="rounded bg-slate-800/70 px-1.5 py-0.5 text-sm font-semibold tabular-nums text-slate-200">{fmt(r.consensus, 1)}</span>
+                          <RankBar compact myRank={r.myRank} consensus={r.consensus} sources={opinionsFor(r)} />
+                        </span>
+                      </td>
+                      {!compact && <>
+                        <td className={`px-2 py-1 tabular-nums ${r.sigma > 12 ? "text-fuchsia-300" : "text-slate-400"}`}>{fmt(r.sigma, 1)}</td>
+                        <td className="px-2 py-1 tabular-nums"><Delta v={r.yahooDelta} invert /></td>
+                        <td className="px-2 py-1 tabular-nums"><Delta v={r.adpDelta} d={0} /></td>
+                        <td className="px-2 py-1 tabular-nums text-slate-300">{fmt(r.pts, 0)}</td>
+                        <td className={`px-2 py-1 tabular-nums font-medium ${r.vor > 0 ? "text-emerald-300" : "text-slate-500"}`}>{fmt(r.vor, 0)}</td>
+                        <td className="px-2 py-1"><Trend p={r.p} trending={state.trending} /></td>
+                      </>}
                     </tr>
                   </React.Fragment>
                 );
@@ -713,7 +854,8 @@ export default function Board() {
           </table>
           <div className="px-3 py-2 text-[11px] text-slate-600">
             Keys: ↑↓ move selection · shift+↑↓ or [ ] re-rank · / search · 1–5 tags · t add/remove a tier break above the selected row · enter detail. Drag rows to reorder; drag ⠿ tier bars to move a cliff; ✕ on a tier bar deletes it.
-            {!board.hasProj && " Pts≈ uses a generic curve — import a projections CSV for scoring-aware values."}
+            {" The bar in Cons puts every source on one scale: the grey band is where they cluster, the pale tick is the Cons value, the blue tick is you."}
+            {!board.hasProj && !compact && " Pts≈ uses a generic curve — import a projections CSV for scoring-aware values."}
           </div>
         </div>
 
@@ -746,21 +888,32 @@ export default function Board() {
                 <div onTouchStart={(e) => onTouchStart(e, r.id)} onTouchEnd={(e) => onTouchEnd(e, r.id)}
                   onClick={() => setDetail(r.id)}
                   className="flex items-center gap-2 border-b border-slate-800/70 px-3 py-2.5 active:bg-slate-900">
-                  <span className="w-6 text-right text-sm tabular-nums text-slate-500">{r.myRank}</span>
+                  <span className="flex w-9 shrink-0 flex-col items-end gap-0.5">
+                    <span className="rounded bg-slate-800 px-1.5 py-0.5 text-sm font-semibold tabular-nums text-slate-100">{r.myRank}</span>
+                    <ConsGap myRank={r.myRank} consensus={r.consensus} />
+                  </span>
                   <span className={`h-8 w-1 rounded-sm ${ps.rail}`} />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center truncate">
                       <span className="truncate font-medium">{r.p.name}</span>
                       <InjuryBadge p={r.p} /><TagDots p={r.p} />
+                      {showOverlay && consensusPos?.get(r.id) != null && (
+                        <span className="ml-1 shrink-0"><ConsPos my={myPos.get(r.id)} theirs={consensusPos.get(r.id)} /></span>
+                      )}
                     </div>
-                    <div className="text-[11px] text-slate-500">
-                      {r.p.pos}{r.posRank} · {r.p.team || "FA"} · bye {r.p.bye ?? "?"} · cons {fmt(r.consensus, 0)} · σ {fmt(r.sigma, 0)}
+                    <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-slate-500">
+                      <span className="shrink-0">{r.p.pos}{r.posRank} · {r.p.team || "FA"} · bye {r.p.bye ?? "?"}</span>
+                      <span className="rounded bg-slate-800/70 px-1 py-0.5 font-semibold tabular-nums text-slate-200">{fmt(r.consensus, 0)}</span>
+                      <RankBar compact width={44} myRank={r.myRank} consensus={r.consensus} sources={opinionsFor(r)} />
+                      {!compact && <span className="shrink-0">σ {fmt(r.sigma, 0)}</span>}
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className="text-xs tabular-nums"><Delta v={r.adpDelta} d={0} /></div>
-                    <div className={`text-[11px] tabular-nums ${r.vor > 0 ? "text-emerald-300" : "text-slate-600"}`}>VOR {fmt(r.vor, 0)}</div>
-                  </div>
+                  {!compact && (
+                    <div className="text-right">
+                      <div className="text-xs tabular-nums"><Delta v={r.adpDelta} d={0} /></div>
+                      <div className={`text-[11px] tabular-nums ${r.vor > 0 ? "text-emerald-300" : "text-slate-600"}`}>VOR {fmt(r.vor, 0)}</div>
+                    </div>
+                  )}
                   <div className="flex flex-col gap-1 pl-1" onClick={(e) => e.stopPropagation()}>
                     <button className="rounded bg-slate-800 px-2 py-1 text-xs" onClick={() => dispatch({ type: "MOVE", id: r.id, delta: -1 })}>▲</button>
                     <button className="rounded bg-slate-800 px-2 py-1 text-xs" onClick={() => dispatch({ type: "MOVE", id: r.id, delta: 1 })}>▼</button>

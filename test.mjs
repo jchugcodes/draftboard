@@ -1,4 +1,4 @@
-import { parseCSV, mapHeaders, parsePastedList, normName, similarity, findCandidates, playerKey, normTeam, migrateTierBreaks, consensusOrder, addTierBreak, removeTierBreak, moveTierBreak, boardSnapshot, diffSnapshots, summarizeDiff } from "./src/util.js";
+import { parseCSV, mapHeaders, parsePastedList, normName, similarity, findCandidates, playerKey, normTeam, migrateTierBreaks, consensusOrder, addTierBreak, removeTierBreak, moveTierBreak, boardSnapshot, diffSnapshots, summarizeDiff, sourceFreshness } from "./src/util.js";
 import { scoreProjection, DEFAULT_SCORING, replacementLevels, suggestTierBreaks, stddev, quintileRatings, targetCompRating } from "./src/compute.js";
 import { aggregateNflverse, computeVacated } from "./src/fetchers.js";
 let fails = 0;
@@ -143,6 +143,23 @@ ok(asb && Math.abs(asb.tgtShare - 22 / 35) < 0.001, "target share " + asb?.tgtSh
 ok(asb && Math.abs(asb.fp - (45 - 0.5 * 17)) < 0.01, "half-ppr conv " + asb?.fp);
 const vac = computeVacated(agg, { "old guy|WR": { team: "KC" }, "amon ra st brown|WR": { team: "DET" } });
 ok(vac.DET && vac.DET.targets === 5 && !("KC" in vac), "vacated " + JSON.stringify(vac));
+
+// Freshness reads off the newest source, because that is what "as of" means —
+// a laggard source is the per-source STALE badge's problem, not this one.
+const NOW = Date.UTC(2026, 7, 24);
+const src = (name, daysOld) => ({ id: name, name, type: "ranks", date: new Date(NOW - daysOld * 86400000).toISOString(), map: {} });
+ok(sourceFreshness([]) === null, "no sources means no freshness line");
+ok(sourceFreshness(null) === null, "missing source list tolerated");
+const f0 = sourceFreshness([src("ESPN", 0), src("Yahoo", 9)], NOW);
+ok(f0.level === "today" && f0.days === 0 && f0.newest.name === "ESPN", "newest source wins: " + JSON.stringify([f0.level, f0.days, f0.newest.name]));
+ok(f0.stale.length === 1 && f0.stale[0].name === "Yahoo", "laggards still reported separately");
+ok(sourceFreshness([src("a", 3)], NOW).level === "recent", "1-6 days is recent");
+ok(sourceFreshness([src("a", 6)], NOW).level === "recent", "6 days is still recent");
+ok(sourceFreshness([src("a", 7)], NOW).level === "stale", "7 days crosses to stale");
+ok(sourceFreshness([src("a", 40)], NOW).days === 40, "day count is absolute");
+// A source dated in the future (clock skew) must not render as negative days.
+ok(sourceFreshness([src("a", -2)], NOW).days === 0, "future-dated source clamps to today");
+ok(sourceFreshness([src("a", 1), { id: "x", name: "junk", date: "not a date", map: {} }], NOW).newest.name === "a", "unparseable dates ignored");
 
 console.log(fails ? `${fails} FAILURES` : "ALL TESTS PASS");
 process.exit(fails ? 1 : 0);

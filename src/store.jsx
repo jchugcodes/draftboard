@@ -36,7 +36,11 @@ const initialState = {
   trending: { adds: [], drops: [], at: null },
   vacated: null, // {team:{targets,carries,tds,names}}
   nflSeason: null,
-  ui: { tab: "board" },
+  // View state, not board data. `density` is "full" (every analytical column)
+  // or "compact" — the draft-day mode that leaves only rank, position, name and
+  // consensus. `overlay` adds a consensus-position badge to each row without
+  // taking the board out of my own order.
+  ui: { tab: "board", density: "full", overlay: false },
 };
 
 function ensurePlayer(draft, { name, team, pos }) {
@@ -86,6 +90,7 @@ function reducer(state, action) {
   switch (action.type) {
     case "HYDRATE": return migrateTierBreaks({ ...initialState, ...action.state, ui: { ...initialState.ui, ...(action.state.ui || {}) } });
     case "SET_TAB": draft.ui.tab = action.tab; return draft;
+    case "SET_UI": draft.ui = { ...draft.ui, ...action.patch }; return draft;
     case "SET_SETTINGS": draft.settings = { ...draft.settings, ...action.patch }; return draft;
     case "SET_ROSTER": draft.settings.roster = { ...draft.settings.roster, ...action.patch }; return draft;
     case "SET_SCORING": draft.settings.scoring = { ...draft.settings.scoring, ...action.patch }; return draft;
@@ -302,15 +307,21 @@ export function StoreProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, initialState, (init) => {
     try {
       const raw = localStorage.getItem(LS_KEY);
-      if (raw) return migrateTierBreaks({ ...init, ...JSON.parse(raw) });
+      if (raw) {
+        const saved = JSON.parse(raw);
+        return migrateTierBreaks({ ...init, ...saved, ui: { ...init.ui, ...(saved.ui || {}) } });
+      }
     } catch (e) { console.warn("load failed", e); }
     return init;
   });
   useEffect(() => {
     const t = setTimeout(() => {
       // sleeperMeta/nflAgg are large re-fetchable caches; keeping them out of
-      // localStorage is what leaves room for the version history.
-      const { ui, sleeperMeta, nflAgg, ...persist } = state;
+      // localStorage is what leaves room for the version history. ui is view
+      // state and mostly not worth restoring — except density and overlay,
+      // which you would resent re-setting every time you reopen mid-draft.
+      const { ui, sleeperMeta, nflAgg, ...rest } = state;
+      const persist = { ...rest, ui: { density: ui.density, overlay: ui.overlay } };
       try {
         localStorage.setItem(LS_KEY, JSON.stringify(persist));
       } catch (e) {

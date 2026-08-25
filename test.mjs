@@ -1,5 +1,5 @@
 import { parseCSV, mapHeaders, parsePastedList, normName, similarity, findCandidates, playerKey, normTeam, migrateTierBreaks, consensusOrder, addTierBreak, removeTierBreak, moveTierBreak, boardSnapshot, diffSnapshots, summarizeDiff, sourceFreshness } from "./src/util.js";
-import { scoreProjection, DEFAULT_SCORING, DEFAULT_ROSTER, replacementLevels, suggestTierBreaks, stddev, quintileRatings, targetCompRating, computeBoard, inConsensus } from "./src/compute.js";
+import { scoreProjection, DEFAULT_SCORING, DEFAULT_ROSTER, replacementLevels, suggestTierBreaks, stddev, quintileRatings, targetCompRating, computeBoard, inConsensus, adpMovement, movementCoverage } from "./src/compute.js";
 import { aggregateNflverse, computeVacated } from "./src/fetchers.js";
 let fails = 0;
 const ok = (cond, msg) => { if (!cond) { fails++; console.log("FAIL:", msg); } };
@@ -198,6 +198,39 @@ ok(inConsensus(cbSrc("x", "adp", 1)) && !inConsensus(cbSrc("x", "proj", 1)), "in
 // Seeding order reads the same flag, so a fresh board and its Cons agree.
 const seedSrcs = [{ id: "s", type: "adp", map: { x: 1, y: 2 }, consensus: false }, { id: "r", type: "ranks", map: { x: 9, y: 1 } }];
 ok(JSON.stringify(consensusOrder(["x", "y"], seedSrcs)) === '["y","x"]', "consensusOrder honours the flag");
+
+// Draft-season movement, from the dated snapshots every refresh appends.
+// Sign follows value, not the number: ADP 40 -> 26 is a rise.
+{
+  const day = (n) => new Date(Date.UTC(2026, 7, 24) - n * 86400000).toISOString();
+  const feed = (name, d, map) => ({ id: name + d, name, type: "adp", date: day(d), map });
+  const mv = adpMovement([
+    feed("ESPN ADP", 14, { up: 40, down: 10, flat: 5 }),
+    feed("ESPN ADP", 7, { up: 33, down: 14, flat: 5 }),
+    feed("ESPN ADP", 0, { up: 26, down: 18, flat: 5 }),
+    feed("Sleeper ADP", 14, { up: 44, down: 9 }),
+    feed("Sleeper ADP", 0, { up: 30, down: 15 }),
+    feed("Consensus ADP", 0, { up: 33 }), // single snapshot: no history to read
+  ]);
+  ok(mv.up.delta === 14, "riser averages +14 across two feeds: " + mv.up.delta);
+  ok(mv.down.delta === -7, "faller averages -7: " + mv.down.delta);
+  ok(mv.flat.delta === 0 && mv.flat.feeds === 1, "flat player, one feed with history");
+  ok(mv.up.days === 14, "span is the widest feed's: " + mv.up.days);
+  // The plotted line comes from one feed, never averaged across date grids.
+  ok(mv.up.series.length === 3 && mv.up.seriesFeed === "ESPN ADP", "series takes the richest feed: " + JSON.stringify(mv.up.series.map((p) => p.value)));
+  ok(mv.up.series[0].value === 40 && mv.up.series[2].value === 26, "series runs oldest to newest");
+
+  ok(Object.keys(adpMovement([feed("ESPN ADP", 0, { a: 1 })])).length === 0, "one snapshot yields no movement");
+  ok(Object.keys(adpMovement([])).length === 0, "no sources yields no movement");
+  // Same-day re-imports are not a fortnight of drift.
+  ok(Object.keys(adpMovement([feed("ESPN ADP", 0, { a: 9 }), feed("ESPN ADP", 0, { a: 4 })])).length === 0, "same-day snapshots are not movement");
+  // A player absent from the earlier snapshot has nothing to difference against.
+  const late = adpMovement([feed("ESPN ADP", 14, { a: 5 }), feed("ESPN ADP", 0, { a: 5, newcomer: 60 })]);
+  ok(!("newcomer" in late), "a player with no earlier value is skipped");
+
+  const cov = movementCoverage([feed("ESPN ADP", 7, {}), feed("ESPN ADP", 0, {}), feed("Consensus ADP", 0, {})]);
+  ok(cov.feeds === 2 && cov.tracked === 1 && cov.names[0] === "ESPN ADP", "coverage counts feeds with history: " + JSON.stringify(cov));
+}
 
 console.log(fails ? `${fails} FAILURES` : "ALL TESTS PASS");
 process.exit(fails ? 1 : 0);

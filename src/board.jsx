@@ -6,6 +6,7 @@ import RankBar from "./rankbar.jsx";
 import { useDataSync } from "./useDataSync.js";
 import { newsRSSUrl, fetchRSSHeadlines } from "./fetchers.js";
 import Onboard from "./onboard.jsx";
+import PlayerCard from "./playercard.jsx";
 
 const posStyle = (pos) => POS_STYLE[pos] || POS_STYLE.DST;
 
@@ -77,14 +78,31 @@ const TagDots = ({ p }) => (
   </span>
 );
 
-function Trend({ p, trending }) {
+// Draft-season movement first, waiver churn only as a fallback. "Up fourteen
+// spots in a fortnight" is a fact about this draft; Sleeper's 48-hour add count
+// is in-season roster噪 noise that happens to be available.
+function Trend({ move, p, trending }) {
+  if (move) {
+    const d = move.delta;
+    const feeds = `${move.feeds} feed${move.feeds > 1 ? "s" : ""}`;
+    if (Math.abs(d) < 1) {
+      return <span title={`Flat across ${feeds} over ${move.days}d`} className="text-ink-ghost">·</span>;
+    }
+    const up = d > 0;
+    return (
+      <span title={`${up ? "Being drafted earlier" : "Sliding"} by ${fmt(Math.abs(d), 1)} spots over ${move.days}d · ${feeds}`}
+        className={`num text-[11px] font-bold ${up ? "text-ahead" : "text-behind"}`}>
+        {up ? "▲" : "▼"}{fmt(Math.abs(d), 0)}
+      </span>
+    );
+  }
   const sid = p.sleeper?.sleeperId;
   if (!sid) return <span className="text-ink-ghost">–</span>;
   const add = trending.adds.find((x) => x.player_id === sid);
   const drop = trending.drops.find((x) => x.player_id === sid);
   if (!add && !drop) return <span className="text-ink-ghost">·</span>;
   return (
-    <span className="tabular-nums text-xs">
+    <span className="num text-[11px]" title="Sleeper adds/drops over 48h — waiver interest, not draft movement">
       {add && <span className="text-ahead">▲{(add.count / 1000).toFixed(0)}k</span>}
       {add && drop && " "}
       {drop && <span className="text-behind">▼{(drop.count / 1000).toFixed(0)}k</span>}
@@ -418,6 +436,10 @@ export default function Board() {
   const overlay = !!state.ui.overlay;
   const setUI = (patch) => dispatch({ type: "SET_UI", patch });
   const [detail, setDetail] = useState(null);
+  // The card opens under the row rather than beside it, so comparing a player
+  // against the two names either side of him never costs you your place.
+  const [expanded, setExpanded] = useState(null);
+  const toggleExpand = (id) => { setSelected(id); setExpanded((cur) => (cur === id ? null : id)); };
   const searchRef = useRef(null);
   const dragItem = useRef(null);
 
@@ -533,8 +555,8 @@ export default function Board() {
         else setSelected(visible[Math.max(0, idx - 1)]?.id ?? visible[0]?.id);
       } else if (e.key === "]" && selected && showTiers) dispatch({ type: "MOVE", id: selected, delta: 1 });
       else if (e.key === "[" && selected && showTiers) dispatch({ type: "MOVE", id: selected, delta: -1 });
-      else if (e.key === "Enter" && selected) setDetail(selected);
-      else if (e.key === "Escape") setDetail(null);
+      else if (e.key === "Enter" && selected) toggleExpand(selected);
+      else if (e.key === "Escape") { if (detail) setDetail(null); else setExpanded(null); }
       else if (e.key === "t" && selected && showTiers) {
         const i = scopeOrder.indexOf(selected);
         if (i > 0) dispatch({ type: "TOGGLE_TIER_BREAK", scope: tierScope, index: i });
@@ -813,7 +835,7 @@ export default function Board() {
                       onDragStart={(e) => onDragStart(e, r.id, "player")}
                       onDragOver={(e) => e.preventDefault()}
                       onDrop={(e) => onDropRow(e, r.id)}
-                      onClick={() => setSelected(r.id)}
+                      onClick={() => toggleExpand(r.id)}
                       onDoubleClick={() => setDetail(r.id)}
                       className={`cursor-pointer border-b border-line hover:bg-panel-raised ${sel ? "bg-accent/10 ring-1 ring-inset ring-accent/40" : ""}`}>
                       {/* My rank and consensus are the two numbers the whole
@@ -860,9 +882,17 @@ export default function Board() {
                         <td className="px-2 py-1 tabular-nums"><Delta v={r.adpDelta} d={0} /></td>
                         <td className="px-2 py-1 tabular-nums text-ink-muted">{fmt(r.pts, 0)}</td>
                         <td className={`px-2 py-1 tabular-nums font-medium ${r.vor > 0 ? "text-ahead" : "text-ink-faint"}`}>{fmt(r.vor, 0)}</td>
-                        <td className="px-2 py-1"><Trend p={r.p} trending={state.trending} /></td>
+                        <td className="px-2 py-1"><Trend move={r.move} p={r.p} trending={state.trending} /></td>
                       </>}
                     </tr>
+                    {expanded === r.id && (
+                      <tr>
+                        <td colSpan={colCount} className="p-0">
+                          <PlayerCard row={r} sources={barSources}
+                            onOpenDetail={setDetail} onClose={() => setExpanded(null)} />
+                        </td>
+                      </tr>
+                    )}
                   </React.Fragment>
                 );
               })}
@@ -908,7 +938,7 @@ export default function Board() {
                   </div>
                 )}
                 <div onTouchStart={(e) => onTouchStart(e, r.id)} onTouchEnd={(e) => onTouchEnd(e, r.id)}
-                  onClick={() => setDetail(r.id)}
+                  onClick={() => toggleExpand(r.id)}
                   className="flex items-center gap-2 border-b border-line px-3 py-2.5 active:bg-panel-raised">
                   <span className="flex w-9 shrink-0 flex-col items-end gap-0.5">
                     <span className="num taper bg-ink px-2 py-0.5 text-[13px] font-bold text-ink-invert">{String(r.myRank).padStart(2, "0")}</span>
@@ -941,10 +971,14 @@ export default function Board() {
                     <button className="rounded bg-band px-2 py-1 text-xs" onClick={() => dispatch({ type: "MOVE", id: r.id, delta: 1 })}>▼</button>
                   </div>
                 </div>
+                {expanded === r.id && (
+                  <PlayerCard row={r} sources={barSources}
+                    onOpenDetail={setDetail} onClose={() => setExpanded(null)} />
+                )}
               </React.Fragment>
             );
           })}
-          <div className="px-3 py-2 text-[11px] text-ink-ghost">Swipe right → Favorite · swipe left → Avoid · tap for detail.</div>
+          <div className="px-3 py-2 text-[11px] text-ink-ghost">Swipe right → Favorite · swipe left → Avoid · tap a row to open it.</div>
         </div>
       </div>
 

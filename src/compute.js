@@ -158,6 +158,80 @@ export function targetCompRating(tgtShare) {
   return 1;
 }
 
+// ---------- draft-season movement ----------
+// Who is climbing and who is sliding, derived from snapshots the app already
+// keeps. Every refresh appends a new dated source rather than replacing the old
+// one, so two runs of the same feed a week apart are a before and an after.
+//
+// Sign follows value, not the number: ADP falling from 40 to 26 means he is
+// being taken *earlier*, which is a rise. delta = older − newer, so positive is
+// always "the market is warming on him".
+//
+// Feeds are compared only against themselves. ESPN's 40 and Sleeper's 40 are
+// not the same 40, and differencing across them would report house style as
+// movement.
+export function adpMovement(sources, { minDays = 1, now = Date.now() } = {}) {
+  const byName = new Map();
+  for (const s of sources || []) {
+    if (!s || s.type === "proj" || !s.date) continue;
+    if (Number.isNaN(new Date(s.date).getTime())) continue;
+    if (!byName.has(s.name)) byName.set(s.name, []);
+    byName.get(s.name).push(s);
+  }
+
+  const perPlayer = {};
+  for (const snaps of byName.values()) {
+    if (snaps.length < 2) continue;
+    snaps.sort((a, b) => new Date(a.date) - new Date(b.date));
+    const first = snaps[0];
+    const last = snaps[snaps.length - 1];
+    const days = Math.round((new Date(last.date) - new Date(first.date)) / 86400000);
+    if (days < minDays) continue;
+    for (const id of Object.keys(last.map || {})) {
+      const to = last.map[id];
+      const from = first.map?.[id];
+      if (from == null || to == null) continue;
+      // Keep the whole trajectory, not just the endpoints: a player who slid
+      // and recovered is a different story from one drifting steadily up, and
+      // the two endpoints alone cannot tell them apart.
+      const series = snaps
+        .map((s) => ({ date: s.date, value: s.map?.[id] }))
+        .filter((pt) => pt.value != null);
+      (perPlayer[id] ||= []).push({ delta: from - to, days, feed: last.name, series });
+    }
+  }
+
+  // A player covered by several feeds gets their mean delta, which cancels the
+  // noise of any one site reshuffling its own board. The plotted line comes
+  // from a single feed — the one with the most snapshots — because feeds sit on
+  // different date grids and different baselines, and averaging across them
+  // would draw a line no source ever published.
+  const out = {};
+  for (const [id, list] of Object.entries(perPlayer)) {
+    const richest = list.reduce((a, b) => (b.series.length > a.series.length ? b : a));
+    out[id] = {
+      delta: list.reduce((a, b) => a + b.delta, 0) / list.length,
+      days: Math.max(...list.map((x) => x.days)),
+      feeds: list.length,
+      series: richest.series,
+      seriesFeed: richest.feed,
+    };
+  }
+  return out;
+}
+
+// How much history exists to move on, so the UI can say "no history yet"
+// instead of rendering an empty column and looking broken.
+export function movementCoverage(sources) {
+  const byName = new Map();
+  for (const s of sources || []) {
+    if (!s || s.type === "proj" || !s.date) continue;
+    byName.set(s.name, (byName.get(s.name) || 0) + 1);
+  }
+  const withHistory = [...byName.entries()].filter(([, n]) => n >= 2);
+  return { feeds: byName.size, tracked: withHistory.length, names: withHistory.map(([n]) => n) };
+}
+
 // ---------- derived board metrics ----------
 // Builds the full computed row set used by both table and cards.
 // Which sources the Cons column averages. Consensus used to mean "the rankings
@@ -199,6 +273,7 @@ export function computeBoard(state) {
     }).sort((a, b) => b.pts - a.pts);
   }
   const { replacement, replRank } = replacementLevels(settings.roster, pointsByPos);
+  const movement = adpMovement(sources);
 
   // Position rank counts down my own order, not consensus: RB3 means the third
   // back I would take, which is the number that matters when filtering.
@@ -227,8 +302,37 @@ export function computeBoard(state) {
       yahooADP, yahooDelta, sigma,
       adpDelta: adpRef != null ? myRank - adpRef : null,
       pts, vor,
+      move: movement[id] ?? null,
     };
   }).filter(Boolean);
 
-  return { rows, replacement, replRank, hasProj: !!proj, yahooSource: yahoo, adpSources, rankSources, consSources };
+  // Positional ranks for the market and for last season. "RB2" is a fact you
+  // read; "consensus 14.6" is one you decode — and against your own Pos# it is
+  // directly comparable, which the raw numbers never are.
+  //
+  // Both are ranked inside the position over the players that actually have the
+  // input, so a missing consensus or a rookie with no snaps stays blank rather
+  // than being handed a flattering rank by default.
+  const rankWithinPos = (valueOf, dir = 1) => {
+    const byPos = {};
+    for (const r of rows) {
+      const v = valueOf(r);
+      if (v == null || Number.isNaN(v)) continue;
+      (byPos[r.p.pos] ||= []).push({ id: r.id, v });
+    }
+    const out = {};
+    for (const list of Object.values(byPos)) {
+      list.sort((a, b) => (a.v - b.v) * dir);
+      list.forEach((x, i) => { out[x.id] = i + 1; });
+    }
+    return out;
+  };
+  const consPos = rankWithinPos((r) => r.consensus);          // lower rank = earlier
+  const lastPos = rankWithinPos((r) => r.p.nfl?.fp, -1);      // more points = better
+  for (const r of rows) {
+    r.consPosRank = consPos[r.id] ?? null;
+    r.lastPosRank = lastPos[r.id] ?? null;
+  }
+
+  return { rows, replacement, replRank, hasProj: !!proj, yahooSource: yahoo, adpSources, rankSources, consSources, coverage: movementCoverage(sources) };
 }

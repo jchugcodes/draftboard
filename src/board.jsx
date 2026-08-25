@@ -439,6 +439,11 @@ export default function Board() {
   // The card opens under the row rather than beside it, so comparing a player
   // against the two names either side of him never costs you your place.
   const [expanded, setExpanded] = useState(null);
+  // A full import runs to several hundred players and every row costs about
+  // sixty DOM nodes, so rendering the lot builds a tree the browser then has to
+  // lay out and re-reconcile on every keystroke. Search, the position chips and
+  // this cap are the three ways the list stays a list.
+  const [limit, setLimit] = useState(120);
   const toggleExpand = (id) => { setSelected(id); setExpanded((cur) => (cur === id ? null : id)); };
   const searchRef = useRef(null);
   const dragItem = useRef(null);
@@ -493,10 +498,20 @@ export default function Board() {
       .map((s) => ({ key: s.id, label: s.name, type: s.type, stale: daysAgo(s.date) > 7 })),
     [state.sources]
   );
-  const opinionsFor = (r) => barSources
-    .map((s) => ({ ...s, value: r.perSource[s.key] ?? null }))
-    .filter((o) => o.value != null)
-    .sort((a, b) => a.value - b.value);
+  // Built once per board rather than per render. A fresh array on every pass
+  // would make the bars unmemoizable, so selecting a row would re-render every
+  // bar on screen to draw exactly the same picture.
+  const opinionsById = useMemo(() => {
+    const m = new Map();
+    for (const r of board.rows) {
+      m.set(r.id, barSources
+        .map((s) => ({ ...s, value: r.perSource[s.key] ?? null }))
+        .filter((o) => o.value != null)
+        .sort((a, b) => a.value - b.value));
+    }
+    return m;
+  }, [board.rows, barSources]);
+  const opinionsFor = (r) => opinionsById.get(r.id) || [];
 
   const visible = useMemo(() => {
     let rows = board.rows;
@@ -519,6 +534,12 @@ export default function Board() {
     }
     return rows;
   }, [board, query, posFilter, tagFilter, sortKey]);
+
+  // Reset the cap whenever the list itself changes, so a search never lands you
+  // on page four of a different set of players.
+  useEffect(() => { setLimit(120); }, [query, posFilter, tagFilter, sortKey]);
+  const shown = useMemo(() => visible.slice(0, limit), [visible, limit]);
+  const hidden = visible.length - shown.length;
 
   const showTiers = sortKey === "my";
 
@@ -544,15 +565,19 @@ export default function Board() {
         return;
       }
       if (e.key === "/") { e.preventDefault(); searchRef.current?.focus(); return; }
-      const idx = visible.findIndex((r) => r.id === selected);
+      // Navigation walks the rendered rows, not the whole filtered list, or the
+      // selection would slide off the end of the board into players that are
+      // not on screen. Arrowing into the cap reveals the next page instead.
+      const idx = shown.findIndex((r) => r.id === selected);
       if (e.key === "ArrowDown" || e.key === "j") {
         e.preventDefault();
         if (e.shiftKey && selected && showTiers) dispatch({ type: "MOVE", id: selected, delta: 1 });
-        else setSelected(visible[Math.min(visible.length - 1, idx + 1)]?.id ?? visible[0]?.id);
+        else if (idx >= shown.length - 1 && hidden > 0) setLimit((n) => n + 120);
+        else setSelected(shown[Math.min(shown.length - 1, idx + 1)]?.id ?? shown[0]?.id);
       } else if (e.key === "ArrowUp" || e.key === "k") {
         e.preventDefault();
         if (e.shiftKey && selected && showTiers) dispatch({ type: "MOVE", id: selected, delta: -1 });
-        else setSelected(visible[Math.max(0, idx - 1)]?.id ?? visible[0]?.id);
+        else setSelected(shown[Math.max(0, idx - 1)]?.id ?? shown[0]?.id);
       } else if (e.key === "]" && selected && showTiers) dispatch({ type: "MOVE", id: selected, delta: 1 });
       else if (e.key === "[" && selected && showTiers) dispatch({ type: "MOVE", id: selected, delta: -1 });
       else if (e.key === "Enter" && selected) toggleExpand(selected);
@@ -567,7 +592,7 @@ export default function Board() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [visible, selected, showTiers, state.myRanks, scopeOrder, tierScope, dispatch]);
+  }, [shown, hidden, selected, showTiers, detail, state.myRanks, scopeOrder, tierScope, dispatch]);
 
   // ---------- drag & drop ----------
   const onDragStart = (e, id, kind) => {
@@ -678,7 +703,7 @@ export default function Board() {
       style={{ "--panelMax": scrollportH ? `${scrollportH}px` : "100dvh" }}>
       <div className="min-w-0 flex-1">
         {/* toolbar */}
-        <div ref={toolbarRef} className="sticky top-0 z-20 border-b border-line bg-ground/95 px-2 py-2 backdrop-blur md:px-3">
+        <div ref={toolbarRef} className="sticky top-0 z-20 border-b border-line bg-ground px-2 py-2 md:px-3">
           <FreshnessStrip />
           {staleSources.length > 0 && (
             <div className="mb-2 rounded border border-warn/40 bg-warn/10 px-2 py-1 text-xs text-warn">
@@ -792,7 +817,7 @@ export default function Board() {
               </tr>
             </thead>
             <tbody>
-              {visible.map((r) => {
+              {shown.map((r) => {
                 const i = scopeOrder.indexOf(r.id);
                 const tier = tierOfIndex(i, scopeBreaks);
                 const header = showTiers && tier !== lastTier;
@@ -900,6 +925,21 @@ export default function Board() {
               })}
             </tbody>
           </table>
+          {hidden > 0 && (
+            <div className="flex items-center gap-3 border-t border-line px-3 py-3">
+              <button onClick={() => setLimit(limit + 200)}
+                className="taper border border-line px-3 py-1.5 text-[10px] font-semibold uppercase tracking-label text-ink-muted transition-colors hover:border-ink hover:text-ink">
+                Show 200 more
+              </button>
+              <button onClick={() => setLimit(visible.length)}
+                className="text-[10px] font-semibold uppercase tracking-label text-ink-faint transition-colors hover:text-ink">
+                Show all {visible.length}
+              </button>
+              <span className="text-[11px] text-ink-faint">
+                <span className="num">{hidden}</span> further down your board — search or a position chip is usually faster than scrolling.
+              </span>
+            </div>
+          )}
           <div className="px-3 py-2 text-[11px] text-ink-ghost">
             Keys: ↑↓ move selection · shift+↑↓ or [ ] re-rank · / search · 1–5 tags · t add/remove a tier break above the selected row · enter detail. Drag rows to reorder; drag ⠿ tier bars to move a cliff; ✕ on a tier bar deletes it.
             {" The bar in Cons puts every source on one scale: the grey band is where they cluster, the pale tick is the Cons value, the blue tick is you."}
@@ -910,7 +950,7 @@ export default function Board() {
         {/* -------- mobile cards -------- */}
         <div className="md:hidden">
           {(() => { lastTier = 0; return null; })()}
-          {visible.map((r) => {
+          {shown.map((r) => {
             const i = scopeOrder.indexOf(r.id);
             const tier = tierOfIndex(i, scopeBreaks);
             const header = showTiers && tier !== lastTier;
@@ -980,6 +1020,21 @@ export default function Board() {
               </React.Fragment>
             );
           })}
+          {hidden > 0 && (
+            <div className="flex items-center gap-3 border-t border-line px-3 py-3">
+              <button onClick={() => setLimit(limit + 200)}
+                className="taper border border-line px-3 py-1.5 text-[10px] font-semibold uppercase tracking-label text-ink-muted transition-colors hover:border-ink hover:text-ink">
+                Show 200 more
+              </button>
+              <button onClick={() => setLimit(visible.length)}
+                className="text-[10px] font-semibold uppercase tracking-label text-ink-faint transition-colors hover:text-ink">
+                Show all {visible.length}
+              </button>
+              <span className="text-[11px] text-ink-faint">
+                <span className="num">{hidden}</span> further down your board — search or a position chip is usually faster than scrolling.
+              </span>
+            </div>
+          )}
           <div className="px-3 py-2 text-[11px] text-ink-ghost">Swipe right → Favorite · swipe left → Avoid · tap a row to open it.</div>
         </div>
       </div>

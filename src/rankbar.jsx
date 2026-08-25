@@ -27,7 +27,7 @@ export function rankScale(values, myRank) {
 const dotFor = (type) => (type === "adp" ? "bg-ink-ghost" : "bg-ink-ghost");
 
 // sources: [{key, label, value, type, stale}]
-export default function RankBar({ myRank, sources, consensus, compact = false, width = 60 }) {
+function RankBar({ myRank, sources, consensus, compact = false, width = 60 }) {
   const values = sources.map((s) => s.value).filter((v) => v != null);
   // A player nobody has ranked has no scale to draw — the empty Cons cell next
   // to it already says so.
@@ -36,33 +36,50 @@ export default function RankBar({ myRank, sources, consensus, compact = false, w
   if (!scale) return null;
 
   if (compact) {
-    // The pale tick is whatever number sits in the Cons cell beside this bar, so
-    // the two never contradict each other. When no rankings source covers him
-    // there is no Cons value, and the mean of the ADP columns stands in — named
-    // differently in the tooltip so it is not mistaken for the same thing.
-    const cons = consensus ?? (values.reduce((a, b) => a + b, 0) / values.length);
-    const consLabel = consensus == null ? "market mean" : "Cons";
-    const min = Math.min(...values);
-    const max = Math.max(...values);
-    const title = `You #${fmt(myRank, 0)} · ${consLabel} ${fmt(cons, 1)} · ${sources.length} source${sources.length > 1 ? "s" : ""} spread ${fmt(min, 0)}–${fmt(max, 0)}`;
-    return (
-      <span title={title} className="relative inline-block h-1.5 rounded bg-band align-middle"
-        style={{ width }}>
-        {/* the band the sources actually occupy — its width is the disagreement */}
-        <span className="absolute inset-y-0 rounded bg-line"
-          style={{ left: `${scale.at(min)}%`, width: `${Math.max(2, scale.at(max) - scale.at(min))}%` }} />
-        {sources.map((s) => s.value == null ? null : (
-          <span key={s.key} className={`absolute top-0 h-1.5 w-[3px] -translate-x-1/2 rounded-sm opacity-70 ${dotFor(s.type)}`}
-            style={{ left: `${scale.at(s.value)}%` }} />
-        ))}
-        <span className="absolute -top-[1px] h-[9px] w-[3px] -translate-x-1/2 rounded-sm bg-band"
-          style={{ left: `${scale.at(cons)}%` }} />
-        <span className="absolute -top-[3px] h-[13px] w-[3px] -translate-x-1/2 rounded-sm bg-accent ring-1 ring-accent/40"
-          style={{ left: `${scale.at(myRank)}%` }} />
-      </span>
-    );
+    return <CompactBar scale={scale} sources={sources} values={values} myRank={myRank} consensus={consensus} width={width} />;
   }
+  return <FullBar scale={scale} sources={sources} myRank={myRank} />;
+}
 
+// One mark, drawn as a hard-stopped gradient layer rather than an element.
+// Background layers cost nothing in the DOM, and the inline bar repeats on
+// every row of a board that can run to seven hundred players — at eight nodes
+// apiece that was five thousand elements doing the work of a picture.
+const mark = (pct, color, w = 3) =>
+  `linear-gradient(90deg, transparent calc(${pct}% - ${w / 2}px), ${color} calc(${pct}% - ${w / 2}px), ${color} calc(${pct}% + ${w / 2}px), transparent calc(${pct}% + ${w / 2}px))`;
+
+function CompactBar({ scale, sources, values, myRank, consensus, width }) {
+  // The pale tick is whatever number sits in the Cons cell beside this bar, so
+  // the two never contradict each other. When no rankings source covers him
+  // there is no Cons value, and the mean of the ADP columns stands in — named
+  // differently in the tooltip so it is not mistaken for the same thing.
+  const cons = consensus ?? (values.reduce((a, b) => a + b, 0) / values.length);
+  const consLabel = consensus == null ? "market mean" : "Cons";
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const title = `You #${fmt(myRank, 0)} · ${consLabel} ${fmt(cons, 1)} · ${sources.length} source${sources.length > 1 ? "s" : ""} spread ${fmt(min, 0)}–${fmt(max, 0)}`;
+
+  // Track, the band the sources occupy, every source mark and the Cons tick all
+  // paint as background layers on one element. Only my own tick stays a real
+  // node, because it stands proud of the track and a background cannot overflow
+  // the box it paints in.
+  const lo = scale.at(min);
+  const hi = scale.at(max);
+  const layers = [
+    ...sources.filter((s) => s.value != null).map((s) => mark(scale.at(s.value), "rgb(var(--ink-ghost))")),
+    mark(scale.at(cons), "rgb(var(--ink))"),
+    `linear-gradient(90deg, transparent ${lo}%, rgb(var(--line)) ${lo}%, rgb(var(--line)) ${hi}%, transparent ${hi}%)`,
+  ];
+  return (
+    <span title={title} className="relative inline-block h-1.5 rounded-full bg-band align-middle"
+      style={{ width, backgroundImage: layers.join(",") }}>
+      <span className="absolute -top-[3px] h-[12px] w-[3px] -translate-x-1/2 rounded-full bg-accent"
+        style={{ left: `${scale.at(myRank)}%` }} />
+    </span>
+  );
+}
+
+function FullBar({ scale, sources, myRank }) {
   const Row = ({ label, value, delta, tone, dot, title, stale }) => (
     <div className="flex items-center gap-3">
       <span className={`w-28 shrink-0 truncate text-[11px] ${tone}`} title={title || label}>
@@ -91,3 +108,7 @@ export default function RankBar({ myRank, sources, consensus, compact = false, w
     </div>
   );
 }
+
+// Memoised because the board renders one of these per row: with the opinions
+// array held stable upstream, selecting a row no longer redraws every bar.
+export default React.memo(RankBar);

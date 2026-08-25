@@ -1,8 +1,15 @@
 // ---------- generic helpers ----------
 export const uid = () => Math.random().toString(36).slice(2, 10);
 export const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
-export const fmt = (n, d = 1) =>
-  n === null || n === undefined || Number.isNaN(n) ? "–" : Number(n).toFixed(d).replace(/\.0$/, d === 1 ? "" : ".0");
+export const fmt = (n, d = 1) => {
+  if (n === null || n === undefined || Number.isNaN(n)) return "–";
+  const s = Number(n).toFixed(d);
+  // toFixed rounds -0.4 to "-0" — a minus sign in front of nothing, which read
+  // as a column of "-0" down the Me−ADP cells. Drop the sign when every digit
+  // that survived rounding is a zero.
+  const signed = /^-0(\.0+)?$/.test(s) ? s.slice(1) : s;
+  return signed.replace(/\.0$/, d === 1 ? "" : ".0");
+};
 export const pct = (n) => (n === null || n === undefined || Number.isNaN(n) ? "–" : (n * 100).toFixed(1) + "%");
 export const daysAgo = (iso) => Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
 

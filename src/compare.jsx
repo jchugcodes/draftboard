@@ -60,7 +60,7 @@ export default function CompareView() {
   );
 
   return (
-    <div className="p-3 md:p-4">
+    <div className="shell p-3 md:p-4">
       <div className="mb-3 flex flex-wrap items-center gap-1.5">
         <span className="text-xs text-ink-faint">Position</span>
         <button onClick={() => setPosFilter(null)}

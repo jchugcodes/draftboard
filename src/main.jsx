@@ -38,11 +38,12 @@ function App() {
 
   return (
     <div className="flex h-dvh flex-col bg-ground text-ink">
-      <header className="flex items-center gap-2 border-b border-line px-2 py-2 md:px-3">
-        <div className="mr-1 flex select-none items-center gap-2">
-          <Mark />
-          <span className="hidden text-[13px] font-bold uppercase tracking-signage md:block">Draftboard</span>
-        </div>
+      <header className="border-b border-line">
+        <div className="shell flex items-center gap-2 px-3 py-2">
+          <div className="mr-1 flex select-none items-center gap-2">
+            <Mark />
+            <span className="hidden text-[13px] font-bold uppercase tracking-signage md:block">Draftboard</span>
+          </div>
         <nav className="flex flex-1 gap-0.5 overflow-x-auto">
           {TABS.map((t) => {
             const on = tab === t.key;
@@ -66,6 +67,7 @@ function App() {
           {theme === "dark" ? "☀" : "☾"}
         </button>
         <span className="hidden text-[10px] uppercase tracking-label text-ink-ghost lg:block">half-PPR · offline-ready</span>
+        </div>
       </header>
       <main className="min-h-0 flex-1 overflow-y-auto">
         {tab === "board" && <Board />}

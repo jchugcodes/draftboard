@@ -27,14 +27,14 @@ const Cell = ({ label, value, sub, tone = "text-ink", title, lead = false }) => 
 // underlying value genuinely is a 1–5 judgement, never to dress up a number
 // that already says what it means.
 const Meter = ({ label, score, read, tone = "bg-ink" }) => (
-  <div>
+  <div className="max-w-md">
     <div className="flex items-baseline justify-between gap-2">
       <span className="label text-ink-faint">{label}</span>
       <span className="text-[10px] font-semibold text-ink">{read}</span>
     </div>
-    <div className="mt-1.5 flex gap-1">
+    <div className="mt-1.5 flex gap-1.5">
       {[1, 2, 3, 4, 5].map((i) => (
-        <span key={i} className={`h-1.5 flex-1 ${i <= score ? tone : "bg-band"}`} />
+        <span key={i} className={`h-2 flex-1 rounded-full transition-colors ${i <= score ? tone : "bg-band"}`} />
       ))}
     </div>
   </div>

@@ -625,7 +625,8 @@ export default function Board() {
   // Column headers are signage, not prose: they get read once to locate a
   // column and then never again, so they go small, upper and widely tracked and
   // stop competing with the numbers underneath them.
-  const th = "label whitespace-nowrap px-2 py-2 text-left text-ink-faint";
+  const th = "label whitespace-nowrap px-2 py-2.5 text-left text-ink-faint";
+
   const sortBtn = (key, label, title) => (
     <button title={title} onClick={() => setSortKey(sortKey === key ? "my" : key)}
       className={sortKey === key ? "text-accent" : "hover:text-ink"}>{label}{sortKey === key ? " ↓" : ""}</button>
@@ -673,7 +674,7 @@ export default function Board() {
   // containing block, so capping this at one viewport would unstick the
   // toolbar partway down the list. min-h- lets it grow with the content.
   return (
-    <div ref={rootRef} className="flex min-h-full"
+    <div ref={rootRef} className="shell flex min-h-full"
       style={{ "--panelMax": scrollportH ? `${scrollportH}px` : "100dvh" }}>
       <div className="min-w-0 flex-1">
         {/* toolbar */}
@@ -837,7 +838,8 @@ export default function Board() {
                       onDrop={(e) => onDropRow(e, r.id)}
                       onClick={() => toggleExpand(r.id)}
                       onDoubleClick={() => setDetail(r.id)}
-                      className={`cursor-pointer border-b border-line hover:bg-panel-raised ${sel ? "bg-accent/10 ring-1 ring-inset ring-accent/40" : ""}`}>
+                      className={`cursor-pointer transition-colors [&>td]:border-b [&>td]:border-line/50 ${
+                        sel ? "bg-accent/10 [&>td]:border-accent/25" : "hover:bg-band/60"}`}>
                       {/* My rank and consensus are the two numbers the whole
                           table exists to compare, so they get chip weight and
                           everything else stays plain. */}
@@ -939,7 +941,7 @@ export default function Board() {
                 )}
                 <div onTouchStart={(e) => onTouchStart(e, r.id)} onTouchEnd={(e) => onTouchEnd(e, r.id)}
                   onClick={() => toggleExpand(r.id)}
-                  className="flex items-center gap-2 border-b border-line px-3 py-2.5 active:bg-panel-raised">
+                  className="flex items-center gap-2 border-b border-line/50 px-3 py-3 transition-colors active:bg-band/60">
                   <span className="flex w-9 shrink-0 flex-col items-end gap-0.5">
                     <span className="num taper bg-ink px-2 py-0.5 text-[13px] font-bold text-ink-invert">{String(r.myRank).padStart(2, "0")}</span>
                     <ConsGap myRank={r.myRank} consensus={r.consensus} />

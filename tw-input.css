@@ -163,4 +163,15 @@
      is barely perceptible per element and unmistakable once it repeats. */
   .taper { clip-path: polygon(0 0, 100% 0, calc(100% - var(--taper)) 100%, var(--taper) 100%); }
   .taper-up { clip-path: polygon(var(--taper) 0, calc(100% - var(--taper)) 0, 100% 100%, 0 100%); }
+
+  /* The measure. A board left to fill a 1900px window spreads fourteen columns
+     so far apart that reading across one row becomes a head movement, and a
+     rank bar ends up 1100px wide to plot the difference between 1 and 2.
+     Roughly the middle 60% on a large display, but with a floor so a 1440
+     laptop keeps its width instead of being squeezed to the same ratio, and
+     never wider than the viewport on a phone. */
+  .shell {
+    width: min(100%, clamp(1120px, 62vw, 1560px));
+    margin-inline: auto;
+  }
 }

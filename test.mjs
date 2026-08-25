@@ -1,4 +1,4 @@
-import { parseCSV, mapHeaders, parsePastedList, normName, similarity, findCandidates, playerKey, normTeam, migrateTierBreaks, consensusOrder, addTierBreak, removeTierBreak, moveTierBreak, boardSnapshot, diffSnapshots, summarizeDiff, sourceFreshness } from "./src/util.js";
+import { parseCSV, mapHeaders, parsePastedList, normName, similarity, findCandidates, playerKey, normTeam, migrateTierBreaks, consensusOrder, addTierBreak, removeTierBreak, moveTierBreak, boardSnapshot, diffSnapshots, summarizeDiff, sourceFreshness, fmt } from "./src/util.js";
 import { scoreProjection, DEFAULT_SCORING, DEFAULT_ROSTER, replacementLevels, suggestTierBreaks, stddev, quintileRatings, targetCompRating, computeBoard, inConsensus, adpMovement, movementCoverage } from "./src/compute.js";
 import { aggregateNflverse, computeVacated } from "./src/fetchers.js";
 let fails = 0;
@@ -231,6 +231,14 @@ ok(JSON.stringify(consensusOrder(["x", "y"], seedSrcs)) === '["y","x"]', "consen
   const cov = movementCoverage([feed("ESPN ADP", 7, {}), feed("ESPN ADP", 0, {}), feed("Consensus ADP", 0, {})]);
   ok(cov.feeds === 2 && cov.tracked === 1 && cov.names[0] === "ESPN ADP", "coverage counts feeds with history: " + JSON.stringify(cov));
 }
+
+// fmt must never print a minus sign in front of nothing. Rounding -0.4 to zero
+// decimals used to yield "-0", which read as a column of them under Me-ADP.
+ok(fmt(-0.4, 0) === "0", "negative zero loses its sign: " + fmt(-0.4, 0));
+ok(fmt(-0.04, 1) === "0", "and at one decimal: " + fmt(-0.04, 1));
+ok(fmt(-1.6, 0) === "-2", "a real negative keeps its sign: " + fmt(-1.6, 0));
+ok(fmt(-12.34, 1) === "-12.3", "negatives round normally: " + fmt(-12.34, 1));
+ok(fmt(0, 0) === "0" && fmt(null) === "–", "zero and blank unchanged");
 
 console.log(fails ? `${fails} FAILURES` : "ALL TESTS PASS");
 process.exit(fails ? 1 : 0);

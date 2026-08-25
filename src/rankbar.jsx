@@ -64,22 +64,25 @@ export default function RankBar({ myRank, sources, consensus, compact = false, w
   }
 
   const Row = ({ label, value, delta, tone, dot, title, stale }) => (
-    <div className="flex items-center gap-2">
-      <span className={`w-24 shrink-0 truncate text-[11px] ${tone}`} title={title || label}>
+    <div className="flex items-center gap-3">
+      <span className={`w-28 shrink-0 truncate text-[11px] ${tone}`} title={title || label}>
         {label}{stale && <span className="text-warn"> *</span>}
       </span>
-      <span className="w-9 shrink-0 text-right text-[11px] tabular-nums text-ink-muted">{fmt(value, 0)}</span>
-      <div className="relative h-1.5 min-w-0 flex-1 rounded bg-band">
+      <span className="num w-8 shrink-0 text-right text-[11px] text-ink-muted">{fmt(value, 0)}</span>
+      <div className="relative h-1.5 min-w-0 flex-1 rounded-full bg-band">
         <span className={`absolute -top-[3px] h-2 w-2 -translate-x-1/2 rounded-full ${dot}`} style={{ left: `${scale.at(value)}%` }} />
       </div>
-      <span className={`w-9 shrink-0 text-right text-[11px] tabular-nums ${delta > 0 ? "text-ahead" : delta < 0 ? "text-behind" : "text-ink-ghost"}`}>
+      <span className={`num w-8 shrink-0 text-right text-[11px] ${delta > 0 ? "text-ahead" : delta < 0 ? "text-behind" : "text-ink-ghost"}`}>
         {delta == null ? "" : delta > 0 ? `+${fmt(delta, 0)}` : fmt(delta, 0)}
       </span>
     </div>
   );
 
+  // The track carries no more information at 900px than at 400, and stretched
+  // that far the dots stop reading as a cluster at all. Capped at a measure the
+  // eye can take in without tracking across.
   return (
-    <div className="space-y-1">
+    <div className="max-w-xl space-y-1.5">
       <Row label="My rank" value={myRank} delta={null} tone="font-semibold text-accent" dot="bg-accent ring-2 ring-accent/30" />
       {sources.map((s) => (
         <Row key={s.key} label={s.label} value={s.value} delta={s.value - myRank} stale={s.stale}

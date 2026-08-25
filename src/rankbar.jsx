@@ -24,7 +24,7 @@ export function rankScale(values, myRank) {
   };
 }
 
-const dotFor = (type) => (type === "adp" ? "bg-violet-400" : "bg-slate-400");
+const dotFor = (type) => (type === "adp" ? "bg-ink-ghost" : "bg-ink-ghost");
 
 // sources: [{key, label, value, type, stale}]
 export default function RankBar({ myRank, sources, consensus, compact = false, width = 60 }) {
@@ -46,18 +46,18 @@ export default function RankBar({ myRank, sources, consensus, compact = false, w
     const max = Math.max(...values);
     const title = `You #${fmt(myRank, 0)} · ${consLabel} ${fmt(cons, 1)} · ${sources.length} source${sources.length > 1 ? "s" : ""} spread ${fmt(min, 0)}–${fmt(max, 0)}`;
     return (
-      <span title={title} className="relative inline-block h-1.5 rounded bg-slate-800 align-middle"
+      <span title={title} className="relative inline-block h-1.5 rounded bg-band align-middle"
         style={{ width }}>
         {/* the band the sources actually occupy — its width is the disagreement */}
-        <span className="absolute inset-y-0 rounded bg-slate-700"
+        <span className="absolute inset-y-0 rounded bg-line"
           style={{ left: `${scale.at(min)}%`, width: `${Math.max(2, scale.at(max) - scale.at(min))}%` }} />
         {sources.map((s) => s.value == null ? null : (
           <span key={s.key} className={`absolute top-0 h-1.5 w-[3px] -translate-x-1/2 rounded-sm opacity-70 ${dotFor(s.type)}`}
             style={{ left: `${scale.at(s.value)}%` }} />
         ))}
-        <span className="absolute -top-[1px] h-[9px] w-[3px] -translate-x-1/2 rounded-sm bg-slate-200"
+        <span className="absolute -top-[1px] h-[9px] w-[3px] -translate-x-1/2 rounded-sm bg-band"
           style={{ left: `${scale.at(cons)}%` }} />
-        <span className="absolute -top-[3px] h-[13px] w-[3px] -translate-x-1/2 rounded-sm bg-sky-400 ring-1 ring-sky-400/40"
+        <span className="absolute -top-[3px] h-[13px] w-[3px] -translate-x-1/2 rounded-sm bg-accent ring-1 ring-accent/40"
           style={{ left: `${scale.at(myRank)}%` }} />
       </span>
     );
@@ -66,13 +66,13 @@ export default function RankBar({ myRank, sources, consensus, compact = false, w
   const Row = ({ label, value, delta, tone, dot, title, stale }) => (
     <div className="flex items-center gap-2">
       <span className={`w-24 shrink-0 truncate text-[11px] ${tone}`} title={title || label}>
-        {label}{stale && <span className="text-amber-400"> *</span>}
+        {label}{stale && <span className="text-warn"> *</span>}
       </span>
-      <span className="w-9 shrink-0 text-right text-[11px] tabular-nums text-slate-300">{fmt(value, 0)}</span>
-      <div className="relative h-1.5 min-w-0 flex-1 rounded bg-slate-800">
+      <span className="w-9 shrink-0 text-right text-[11px] tabular-nums text-ink-muted">{fmt(value, 0)}</span>
+      <div className="relative h-1.5 min-w-0 flex-1 rounded bg-band">
         <span className={`absolute -top-[3px] h-2 w-2 -translate-x-1/2 rounded-full ${dot}`} style={{ left: `${scale.at(value)}%` }} />
       </div>
-      <span className={`w-9 shrink-0 text-right text-[11px] tabular-nums ${delta > 0 ? "text-emerald-400" : delta < 0 ? "text-rose-400" : "text-slate-600"}`}>
+      <span className={`w-9 shrink-0 text-right text-[11px] tabular-nums ${delta > 0 ? "text-ahead" : delta < 0 ? "text-behind" : "text-ink-ghost"}`}>
         {delta == null ? "" : delta > 0 ? `+${fmt(delta, 0)}` : fmt(delta, 0)}
       </span>
     </div>
@@ -80,10 +80,10 @@ export default function RankBar({ myRank, sources, consensus, compact = false, w
 
   return (
     <div className="space-y-1">
-      <Row label="My rank" value={myRank} delta={null} tone="font-semibold text-sky-300" dot="bg-sky-400 ring-2 ring-sky-400/30" />
+      <Row label="My rank" value={myRank} delta={null} tone="font-semibold text-accent" dot="bg-accent ring-2 ring-accent/30" />
       {sources.map((s) => (
         <Row key={s.key} label={s.label} value={s.value} delta={s.value - myRank} stale={s.stale}
-          tone="text-slate-400" dot={dotFor(s.type)} title={`${s.label} · ${String(s.type).toUpperCase()}`} />
+          tone="text-ink-muted" dot={dotFor(s.type)} title={`${s.label} · ${String(s.type).toUpperCase()}`} />
       ))}
     </div>
   );

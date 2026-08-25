@@ -35,7 +35,11 @@ window.eval(readFileSync("dist/app.js","utf8"));
 await new Promise((r)=>setTimeout(r,150));
 const text = window.document.body.textContent;
 let fails = 0;
-const must = ["Justin Jefferson","Tier 1","Tier 2","FantasyPros","Yahoo","ESPN","Y vs mkt","VOR","is more than 7 days old"];
+const must = ["Justin Jefferson","FantasyPros","Yahoo","ESPN","Y vs mkt","VOR","is more than 7 days old"];
+// Tiers render as a zero-padded ordinal in an ink block beside a TIER label.
+const tierMarks = () => [...window.document.querySelectorAll("span")].filter((n) => /^\d\d$/.test(n.textContent.trim()) && n.className.includes("bg-ink"));
+if (tierMarks().length < 2) { console.log("expected at least two tier marks, got", tierMarks().map((n)=>n.textContent)); fails++; }
+if (!text.includes("Tier")) { console.log("MISSING: Tier label"); fails++; }
 for (const m of must) if (!text.includes(m)) { console.log("MISSING:", m); fails++; }
 // verify consensus + delta rendered as numbers not NaN
 if (text.includes("NaN")) { console.log("NaN leaked into UI"); fails++; }
@@ -73,7 +77,7 @@ for (const gone of ["Y vs mkt", "Me−ADP", "VOR", "Trend", "FantasyPros", "Yaho
   if (lean.some((h) => h.startsWith(gone))) { console.log("compact should hide:", gone); fails++; }
 }
 const compact = window.document.body.textContent;
-for (const kept of ["Justin Jefferson", "Tier 1", "Consensus as of"]) {
+for (const kept of ["Justin Jefferson", "Tier", "Consensus as of"]) {
   if (!compact.includes(kept)) { console.log("compact should keep:", kept); fails++; }
 }
 
@@ -86,7 +90,7 @@ if (headers().length !== full.length) { console.log("Full did not restore column
 click("Consensus overlay");
 await settle();
 const overlaid = window.document.body.textContent;
-if (!overlaid.includes("Justin Jefferson") || !overlaid.includes("Tier 1")) {
+if (!overlaid.includes("Justin Jefferson") || !tierMarks().length) {
   console.log("overlay lost the board's own order/tiers"); fails++;
 }
 const badges = [...window.document.querySelectorAll("span[title]")].filter((n) => /Consensus would rank him/.test(n.getAttribute("title")));

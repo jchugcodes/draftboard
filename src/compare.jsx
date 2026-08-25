@@ -46,44 +46,44 @@ export default function CompareView() {
 
   if (!cols.length) {
     return (
-      <div className="mx-auto max-w-md p-8 text-center text-sm text-slate-400">
-        No ranking sources yet. Load data from <span className="text-slate-200">Setup</span> and every site becomes a
+      <div className="mx-auto max-w-md p-8 text-center text-sm text-ink-muted">
+        No ranking sources yet. Load data from <span className="text-ink">Setup</span> and every site becomes a
         column here.
       </div>
     );
   }
 
-  const th = "px-2 py-1 text-left text-[11px] font-medium uppercase tracking-wide text-slate-500";
+  const th = "px-2 py-1 text-left text-[11px] font-medium uppercase tracking-wide text-ink-faint";
   const sortBtn = (key, label, title) => (
     <button title={title} onClick={() => setSortKey(key)}
-      className={sortKey === key ? "text-sky-300" : "hover:text-slate-200"}>{label}{sortKey === key ? " ↓" : ""}</button>
+      className={sortKey === key ? "text-accent" : "hover:text-ink"}>{label}{sortKey === key ? " ↓" : ""}</button>
   );
 
   return (
     <div className="p-3 md:p-4">
       <div className="mb-3 flex flex-wrap items-center gap-1.5">
-        <span className="text-xs text-slate-500">Position</span>
+        <span className="text-xs text-ink-faint">Position</span>
         <button onClick={() => setPosFilter(null)}
-          className={`rounded border px-2 py-0.5 text-xs font-bold ${!posFilter ? "border-sky-500 text-sky-300" : "border-slate-800 text-slate-500 hover:border-slate-600"}`}>All</button>
+          className={`rounded border px-2 py-0.5 text-xs font-bold ${!posFilter ? "border-accent text-accent" : "border-line text-ink-faint hover:border-line-strong"}`}>All</button>
         {POSITIONS.map((pos) => (
           <button key={pos} onClick={() => setPosFilter(posFilter === pos ? null : pos)}
-            className={`rounded border px-2 py-0.5 text-xs font-bold ${posFilter === pos ? posStyle(pos).chip : "border-slate-800 text-slate-500 hover:border-slate-600"}`}>
+            className={`rounded border px-2 py-0.5 text-xs font-bold ${posFilter === pos ? posStyle(pos).chip : "border-line text-ink-faint hover:border-line-strong"}`}>
             {pos}
           </button>
         ))}
         <span className="grow" />
-        <span className="text-[11px] text-slate-500">{rows.length} players · {cols.length} sources</span>
+        <span className="text-[11px] text-ink-faint">{rows.length} players · {cols.length} sources</span>
       </div>
 
       <div className="overflow-x-auto">
         <table className="w-full border-collapse text-sm">
           <thead>
-            <tr className="border-b border-slate-800">
+            <tr className="border-b border-line">
               <th className={th}>{sortBtn("mine", "Me", "My rank")}</th>
               <th className={th}>Player</th>
               {cols.map((s) => (
                 <th key={s.id} className={th} title={`${s.name} · ${s.type.toUpperCase()}`}>
-                  <span className="whitespace-nowrap">{s.name}{daysAgo(s.date) > 7 && <span className="text-amber-400">*</span>}</span>
+                  <span className="whitespace-nowrap">{s.name}{daysAgo(s.date) > 7 && <span className="text-warn">*</span>}</span>
                 </th>
               ))}
               <th className={th}>{sortBtn("consensus", "Cons", "Mean across sources")}</th>
@@ -97,25 +97,25 @@ export default function CompareView() {
               const strong = Math.abs(r.gap) >= 12;
               return (
                 <tr key={r.id} onClick={() => { dispatch({ type: "SET_TAB", tab: "board" }); }}
-                  className="cursor-pointer border-b border-slate-800/60 hover:bg-slate-900">
-                  <td className="px-2 py-1 tabular-nums text-slate-400">{r.myRank}</td>
+                  className="cursor-pointer border-b border-line hover:bg-panel-raised">
+                  <td className="px-2 py-1 tabular-nums text-ink-muted">{r.myRank}</td>
                   <td className="px-2 py-1 whitespace-nowrap">
                     <span className={`mr-1.5 text-[11px] font-bold ${ps.text}`}>{r.p.pos}</span>
                     <span className="font-medium">{r.p.name}</span>
-                    <span className="ml-1 text-[11px] text-slate-500">{r.p.team || "FA"}</span>
+                    <span className="ml-1 text-[11px] text-ink-faint">{r.p.team || "FA"}</span>
                   </td>
                   {r.vals.map((v, i) => {
                     // Shade each cell by how far that site sits from my rank.
                     const d = v == null ? null : v - r.myRank;
-                    const cls = d == null ? "text-slate-700"
-                      : d >= 12 ? "text-emerald-300"
-                      : d <= -12 ? "text-rose-300"
-                      : "text-slate-400";
+                    const cls = d == null ? "text-ink-ghost"
+                      : d >= 12 ? "text-ahead"
+                      : d <= -12 ? "text-behind"
+                      : "text-ink-muted";
                     return <td key={cols[i].id} className={`px-2 py-1 tabular-nums ${cls}`}>{v == null ? "–" : fmt(v, 0)}</td>;
                   })}
-                  <td className="px-2 py-1 tabular-nums text-slate-300">{fmt(r.consensus, 1)}</td>
-                  <td className={`px-2 py-1 tabular-nums ${r.spread > 24 ? "text-fuchsia-300" : "text-slate-500"}`}>{fmt(r.spread, 0)}</td>
-                  <td className={`px-2 py-1 tabular-nums font-medium ${r.gap < 0 ? "text-rose-300" : r.gap > 0 ? "text-emerald-300" : "text-slate-500"}`}>
+                  <td className="px-2 py-1 tabular-nums text-ink-muted">{fmt(r.consensus, 1)}</td>
+                  <td className={`px-2 py-1 tabular-nums ${r.spread > 24 ? "text-warn" : "text-ink-faint"}`}>{fmt(r.spread, 0)}</td>
+                  <td className={`px-2 py-1 tabular-nums font-medium ${r.gap < 0 ? "text-behind" : r.gap > 0 ? "text-ahead" : "text-ink-faint"}`}>
                     {r.gap > 0 ? "+" : ""}{fmt(r.gap, 0)}{strong && <span className="ml-1 text-[10px] uppercase opacity-70">{r.gap < 0 ? "reach" : "wait"}</span>}
                   </td>
                 </tr>
@@ -127,11 +127,11 @@ export default function CompareView() {
 
       {rows.length > limit && (
         <button onClick={() => setLimit(limit + 60)}
-          className="mt-3 rounded border border-slate-700 px-3 py-1 text-xs text-slate-300 hover:border-sky-500">
+          className="mt-3 rounded border border-line px-3 py-1 text-xs text-ink-muted hover:border-accent">
           Show 60 more
         </button>
       )}
-      <p className="mt-3 text-[11px] text-slate-500">
+      <p className="mt-3 text-[11px] text-ink-faint">
         Green means a site ranks him later than you do — you could wait. Red means they are higher — you would have to
         reach. Sorted by disagreement, so the top of this list is where your board actually differs from the market.
       </p>

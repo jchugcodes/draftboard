@@ -27,9 +27,9 @@ function tierOfIndex(i, breaks) {
 }
 
 const Delta = ({ v, invert = false, d = 1 }) => {
-  if (v == null || Number.isNaN(v)) return <span className="text-slate-600">–</span>;
+  if (v == null || Number.isNaN(v)) return <span className="text-ink-ghost">–</span>;
   const good = invert ? v > 0 : v < 0;
-  const cls = Math.abs(v) < 0.5 ? "text-slate-400" : good ? "text-emerald-400" : "text-red-400";
+  const cls = Math.abs(v) < 0.5 ? "text-ink-muted" : good ? "text-ahead" : "text-behind";
   return <span className={cls}>{v > 0 ? "+" : ""}{fmt(v, d)}</span>;
 };
 
@@ -40,8 +40,8 @@ const Delta = ({ v, invert = false, d = 1 }) => {
 const ConsGap = ({ myRank, consensus }) => {
   if (consensus == null || Number.isNaN(consensus)) return null;
   const g = Math.round(myRank - consensus);
-  if (g === 0) return <span className="text-[10px] text-slate-600">=</span>;
-  const cls = Math.abs(g) < 3 ? "text-slate-500" : g < 0 ? "text-rose-400" : "text-emerald-400";
+  if (g === 0) return <span className="text-[10px] text-ink-ghost">=</span>;
+  const cls = Math.abs(g) < 3 ? "text-ink-faint" : g < 0 ? "text-behind" : "text-ahead";
   const title = g < 0
     ? `You have him ${-g} spots higher than consensus — reaching`
     : `Consensus has him ${g} spots higher than you — you could wait`;
@@ -53,20 +53,20 @@ const ConsGap = ({ myRank, consensus }) => {
 // the consensus *value* — this one is a position you could actually draft at.
 const ConsPos = ({ my, theirs }) => {
   const move = my - theirs;
-  const cls = Math.abs(move) < 3 ? "border-slate-700 text-slate-500"
-    : move < 0 ? "border-rose-500/40 text-rose-300"
-    : "border-emerald-500/40 text-emerald-300";
+  const cls = Math.abs(move) < 3 ? "border-line text-ink-faint"
+    : move < 0 ? "border-behind/40 text-behind"
+    : "border-ahead/40 text-ahead";
   const title = move === 0 ? "Consensus would rank him exactly here"
     : move < 0 ? `Consensus would rank him #${theirs} — ${-move} spots later than you have him`
     : `Consensus would rank him #${theirs} — ${move} spots earlier than you have him`;
-  return <span title={title} className={`rounded border px-1 text-[10px] tabular-nums ${cls}`}>c{theirs}</span>;
+  return <span title={title} className={`num taper border px-1.5 py-px text-[10px] font-semibold ${cls}`}>c{theirs}</span>;
 };
 
 const InjuryBadge = ({ p }) => {
   const inj = p.sleeper?.injury;
   if (!inj) return null;
   const short = { Questionable: "Q", Doubtful: "D", Out: "O", IR: "IR", PUP: "PUP", Sus: "SUS" }[inj] || inj.slice(0, 3);
-  return <span className="ml-1 rounded bg-red-500/20 px-1 text-[10px] font-bold text-red-300">{short}</span>;
+  return <span className="taper ml-1.5 bg-behind px-1 text-[9px] font-bold uppercase tracking-label text-ink-invert">{short}</span>;
 };
 
 const TagDots = ({ p }) => (
@@ -79,15 +79,15 @@ const TagDots = ({ p }) => (
 
 function Trend({ p, trending }) {
   const sid = p.sleeper?.sleeperId;
-  if (!sid) return <span className="text-slate-700">–</span>;
+  if (!sid) return <span className="text-ink-ghost">–</span>;
   const add = trending.adds.find((x) => x.player_id === sid);
   const drop = trending.drops.find((x) => x.player_id === sid);
-  if (!add && !drop) return <span className="text-slate-700">·</span>;
+  if (!add && !drop) return <span className="text-ink-ghost">·</span>;
   return (
     <span className="tabular-nums text-xs">
-      {add && <span className="text-emerald-400">▲{(add.count / 1000).toFixed(0)}k</span>}
+      {add && <span className="text-ahead">▲{(add.count / 1000).toFixed(0)}k</span>}
       {add && drop && " "}
-      {drop && <span className="text-red-400">▼{(drop.count / 1000).toFixed(0)}k</span>}
+      {drop && <span className="text-behind">▼{(drop.count / 1000).toFixed(0)}k</span>}
     </span>
   );
 }
@@ -118,31 +118,31 @@ function NewsPanel({ p }) {
       <div className="flex flex-wrap gap-1.5">
         {links.map((l) => (
           <a key={l.url} href={l.url} target="_blank" rel="noopener noreferrer"
-            className="rounded border border-slate-700 bg-slate-800/60 px-2 py-1 text-xs text-sky-300 hover:border-sky-500">
+            className="rounded border border-line bg-band/60 px-2 py-1 text-xs text-accent hover:border-accent">
             {l.name} ↗
           </a>
         ))}
       </div>
       {proxy ? (
         <div>
-          <button onClick={load} className="rounded bg-slate-700 px-2 py-1 text-xs hover:bg-slate-600">
+          <button onClick={load} className="rounded bg-line px-2 py-1 text-xs hover:bg-line-strong">
             {loading ? "Fetching…" : "Fetch headlines inline"}
           </button>
-          {err && <div className="mt-1 text-xs text-red-400">Couldn't fetch through your proxy: {err}</div>}
+          {err && <div className="mt-1 text-xs text-behind">Couldn't fetch through your proxy: {err}</div>}
           {headlines && (
             <ul className="mt-2 space-y-1">
               {headlines.map((h, i) => (
                 <li key={i} className="text-xs leading-snug">
-                  <a className="text-slate-200 hover:text-sky-300" href={h.link} target="_blank" rel="noopener noreferrer">{h.title}</a>
-                  <span className="ml-1 text-slate-500">{h.date && new Date(h.date).toLocaleDateString()}</span>
+                  <a className="text-ink hover:text-accent" href={h.link} target="_blank" rel="noopener noreferrer">{h.title}</a>
+                  <span className="ml-1 text-ink-faint">{h.date && new Date(h.date).toLocaleDateString()}</span>
                 </li>
               ))}
-              {!headlines.length && <li className="text-xs text-slate-500">No headlines returned.</li>}
+              {!headlines.length && <li className="text-xs text-ink-faint">No headlines returned.</li>}
             </ul>
           )}
         </div>
       ) : (
-        <div className="text-[11px] text-slate-500">Add a CORS proxy in Settings to render headlines inline. Links above open in a new tab.</div>
+        <div className="text-[11px] text-ink-faint">Add a CORS proxy in Settings to render headlines inline. Links above open in a new tab.</div>
       )}
     </div>
   );
@@ -159,38 +159,38 @@ function Scorecard({ p }) {
   const { dispatch } = useStore();
   const fields = SCORECARD_FIELDS[p.pos] || SCORECARD_FIELDS.WR;
   const sc = p.scorecard;
-  const dot = (v) => (v >= 4 ? "bg-emerald-400" : v <= 2 ? "bg-red-400" : "bg-slate-500");
+  const dot = (v) => (v >= 4 ? "bg-ahead" : v <= 2 ? "bg-behind" : "bg-ink-ghost");
   return (
     <div>
       <div className="mb-1 flex items-center justify-between">
-        <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">Situation scorecard</div>
-        <label className="flex items-center gap-1 text-[11px] text-slate-400">
+        <div className="text-xs font-semibold uppercase tracking-wide text-ink-muted">Situation scorecard</div>
+        <label className="flex items-center gap-1 text-[11px] text-ink-muted">
           <input type="checkbox" checked={!!sc.projected}
             onChange={(e) => dispatch({ type: "SET_SCORECARD", id: p.id, patch: { projected: e.target.checked } })} />
           projected, not from completed-season data
         </label>
       </div>
       {sc.projected && (
-        <div className="mb-2 rounded border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-[11px] text-amber-300">
+        <div className="mb-2 rounded border border-warn/30 bg-warn/10 px-2 py-1 text-[11px] text-warn">
           Projected grades — rookie / new team / offseason guess. No current-year basis.
         </div>
       )}
       <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
         {fields.map(([key, label]) => (
           <div key={key} className="flex items-center justify-between gap-2">
-            <span className="text-xs text-slate-400">{label}</span>
+            <span className="text-xs text-ink-muted">{label}</span>
             <span className="flex items-center gap-1">
               <span className={`h-2 w-2 rounded-full ${dot(sc[key])}`} />
-              <input type="range" min="1" max="5" value={sc[key] ?? 3} className="w-20 accent-sky-400"
+              <input type="range" min="1" max="5" value={sc[key] ?? 3} className="w-20 accent-accent"
                 onChange={(e) => dispatch({ type: "SET_SCORECARD", id: p.id, patch: { [key]: +e.target.value } })} />
-              <span className="w-3 text-right text-xs tabular-nums text-slate-300">{sc[key] ?? 3}</span>
+              <span className="w-3 text-right text-xs tabular-nums text-ink-muted">{sc[key] ?? 3}</span>
             </span>
           </div>
         ))}
       </div>
       <input value={sc.note || ""} placeholder="Grade note (e.g. new OC, rookie — projected)"
         onChange={(e) => dispatch({ type: "SET_SCORECARD", id: p.id, patch: { note: e.target.value } })}
-        className="mt-2 w-full rounded border border-slate-700 bg-slate-900 px-2 py-1 text-xs" />
+        className="mt-2 w-full rounded border border-line bg-panel-raised px-2 py-1 text-xs" />
     </div>
   );
 }
@@ -198,7 +198,7 @@ function Scorecard({ p }) {
 // ---------------- advanced stats ----------------
 function AdvStats({ p, season }) {
   const n = p.nfl;
-  if (!n) return <div className="text-xs text-slate-500">No nflverse data linked. Fetch season stats from the Imports tab.</div>;
+  if (!n) return <div className="text-xs text-ink-faint">No nflverse data linked. Fetch season stats from the Imports tab.</div>;
   const rows =
     p.pos === "QB" ? [
       ["Dropbacks", n.dropbacks, 0], ["Pass yds", n.passYd, 0], ["Pass TD", n.passTD, 0],
@@ -214,22 +214,22 @@ function AdvStats({ p, season }) {
     ];
   return (
     <div>
-      <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-400">
+      <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-ink-muted">
         {season} season · {n.games} games {n.team ? `· ${n.team}` : ""}
       </div>
       <div className="grid grid-cols-3 gap-x-3 gap-y-1">
         {rows.map(([label, v, d]) => (
-          <div key={label} className="flex items-baseline justify-between border-b border-slate-800 pb-0.5">
-            <span className="text-[11px] text-slate-500">{label}</span>
-            <span className="text-xs tabular-nums text-slate-200">{d === "pct" ? pct(v) : fmt(v, d)}</span>
+          <div key={label} className="flex items-baseline justify-between border-b border-line pb-0.5">
+            <span className="text-[11px] text-ink-faint">{label}</span>
+            <span className="text-xs tabular-nums text-ink">{d === "pct" ? pct(v) : fmt(v, d)}</span>
           </div>
         ))}
       </div>
       {p.sleeper?.age != null && (
-        <div className="mt-1.5 text-[11px] text-slate-500">
+        <div className="mt-1.5 text-[11px] text-ink-faint">
           Age {p.sleeper.age} · Yr {(p.sleeper.yearsExp ?? 0) + 1}
-          {p.pos === "WR" && p.sleeper.yearsExp <= 2 && <span className="ml-1 text-purple-300">· inside the yr-1–3 WR breakout window</span>}
-          {p.pos === "RB" && p.sleeper.age >= 27 && <span className="ml-1 text-amber-300">· RB age cliff territory</span>}
+          {p.pos === "WR" && p.sleeper.yearsExp <= 2 && <span className="ml-1 text-pos-K">· inside the yr-1–3 WR breakout window</span>}
+          {p.pos === "RB" && p.sleeper.age >= 27 && <span className="ml-1 text-warn">· RB age cliff territory</span>}
         </div>
       )}
     </div>
@@ -249,7 +249,7 @@ function SourceCompare({ p }) {
 
   if (!rows.length) {
     return (
-      <div className="text-xs text-slate-500">
+      <div className="text-xs text-ink-faint">
         No ranking sources cover this player yet. Fetch Sleeper or ESPN on the Imports tab.
       </div>
     );
@@ -262,9 +262,9 @@ function SourceCompare({ p }) {
   return (
     <div className="space-y-1">
       <RankBar myRank={myRank} sources={rows} consensus={consensus} />
-      <div className="flex items-center justify-between pt-1 text-[11px] text-slate-500">
+      <div className="flex items-center justify-between pt-1 text-[11px] text-ink-faint">
         <span>consensus {fmt(consensus, 1)} · spread {fmt(spread, 0)} across {rows.length} source{rows.length > 1 ? "s" : ""}</span>
-        <span className={myRank < consensus ? "text-rose-400" : myRank > consensus ? "text-emerald-400" : ""}>
+        <span className={myRank < consensus ? "text-behind" : myRank > consensus ? "text-ahead" : ""}>
           {myRank < consensus ? `${fmt(consensus - myRank, 0)} higher than the room` : myRank > consensus ? `${fmt(myRank - consensus, 0)} lower than the room` : "on consensus"}
         </span>
       </div>
@@ -284,8 +284,8 @@ function ProjLine({ p }) {
   if (st.rec) bits.push(`${fmt(st.rec, 0)} rec`, `${fmt(st.recYd, 0)} rec yd`, `${fmt(st.recTD, 0)} rec TD`);
   if (!bits.length) return null;
   return (
-    <div className="mt-1 text-[11px] text-slate-400">
-      <span className="text-slate-500">{proj.name}:</span> {bits.join(" · ")}
+    <div className="mt-1 text-[11px] text-ink-muted">
+      <span className="text-ink-faint">{proj.name}:</span> {bits.join(" · ")}
     </div>
   );
 }
@@ -299,58 +299,58 @@ function DetailPanel({ id, onClose }) {
     .filter((x) => x.pos === p.pos && x.team === p.team && x.id !== p.id);
   return (
     <div className="flex h-full flex-col overflow-y-auto">
-      <div className="sticky top-0 z-10 flex items-start justify-between border-b border-slate-800 bg-slate-950/95 p-3 backdrop-blur">
+      <div className="sticky top-0 z-10 flex items-start justify-between border-b border-line bg-ground/95 p-3 backdrop-blur">
         <div>
           <div className="flex items-center gap-2">
             <span className={`rounded border px-1.5 py-0.5 text-xs font-bold ${ps.chip}`}>{p.pos}</span>
             <span className="text-base font-semibold">{p.name}</span>
             <InjuryBadge p={p} />
           </div>
-          <div className="mt-0.5 text-xs text-slate-400">
+          <div className="mt-0.5 text-xs text-ink-muted">
             {p.team || "FA"} · bye {p.bye ?? "?"}
             {p.handcuffOf && state.players[p.handcuffOf] && <> · handcuff of {state.players[p.handcuffOf].name}</>}
           </div>
         </div>
-        <button onClick={onClose} className="rounded p-1.5 text-slate-400 hover:bg-slate-800" aria-label="Close">✕</button>
+        <button onClick={onClose} className="rounded p-1.5 text-ink-muted hover:bg-band" aria-label="Close">✕</button>
       </div>
       <div className="space-y-4 p-3">
         <div className="flex flex-wrap gap-1.5">
           {TAGS.map((t) => (
             <button key={t.key}
               onClick={() => dispatch({ type: "TOGGLE_TAG", id: p.id, tag: t.key })}
-              className={`rounded-full border px-2.5 py-1 text-xs ${p.tags.includes(t.key) ? t.cls : "border-slate-700 text-slate-500 hover:border-slate-500"}`}>
+              className={`rounded-full border px-2.5 py-1 text-xs ${p.tags.includes(t.key) ? t.cls : "border-line text-ink-faint hover:border-line-strong"}`}>
               {t.label}
             </button>
           ))}
         </div>
         <textarea value={p.notes} placeholder="Notes…" rows={3}
           onChange={(e) => dispatch({ type: "SET_NOTES", id: p.id, notes: e.target.value })}
-          className="w-full rounded border border-slate-700 bg-slate-900 px-2 py-1.5 text-sm" />
+          className="w-full rounded border border-line bg-panel-raised px-2 py-1.5 text-sm" />
         <div className="grid grid-cols-2 gap-2">
-          <label className="text-xs text-slate-400">
+          <label className="text-xs text-ink-muted">
             Handcuff of
             <select value={p.handcuffOf || ""} onChange={(e) => dispatch({ type: "SET_HANDCUFF", id: p.id, starterId: e.target.value || null })}
-              className="mt-0.5 w-full rounded border border-slate-700 bg-slate-900 px-1.5 py-1 text-xs text-slate-200">
+              className="mt-0.5 w-full rounded border border-line bg-panel-raised px-1.5 py-1 text-xs text-ink">
               <option value="">— none —</option>
               {starterOptions.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
           </label>
-          <label className="text-xs text-slate-400">
+          <label className="text-xs text-ink-muted">
             Bye week
             <input type="number" min="1" max="18" value={p.bye ?? ""} placeholder="?"
               onChange={(e) => dispatch({ type: "SET_BYE", id: p.id, bye: e.target.value === "" ? null : +e.target.value })}
-              className="mt-0.5 w-full rounded border border-slate-700 bg-slate-900 px-1.5 py-1 text-xs text-slate-200" />
+              className="mt-0.5 w-full rounded border border-line bg-panel-raised px-1.5 py-1 text-xs text-ink" />
           </label>
         </div>
         <div>
-          <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-400">Where the sites have him</div>
+          <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-ink-muted">Where the sites have him</div>
           <SourceCompare p={p} />
           <ProjLine p={p} />
         </div>
         <Scorecard p={p} />
         <AdvStats p={p} season={state.nflSeason} />
         <div>
-          <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-400">News</div>
+          <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-ink-muted">News</div>
           <NewsPanel p={p} />
         </div>
       </div>
@@ -370,9 +370,9 @@ function FreshnessStrip() {
   if (!fresh) return null;
 
   const tone = {
-    today: "border-emerald-500/40 bg-emerald-500/15 text-emerald-300",
-    recent: "border-amber-500/40 bg-amber-500/15 text-amber-300",
-    stale: "border-red-500/40 bg-red-500/15 text-red-300",
+    today: "border-ahead/40 bg-ahead/15 text-ahead",
+    recent: "border-warn/40 bg-warn/15 text-warn",
+    stale: "border-behind/40 bg-behind/15 text-behind",
   }[fresh.level];
   const pill = {
     today: "updated today",
@@ -385,16 +385,16 @@ function FreshnessStrip() {
   return (
     <div className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px]">
       <span className={`rounded-full border px-2 py-0.5 font-semibold ${tone}`}>{pill}</span>
-      <span className="text-slate-400">
-        Consensus as of <span className="text-slate-200">{new Date(fresh.newest.date).toLocaleDateString()}</span>
-        <span className="text-slate-600"> · {fresh.newest.name} · {state.sources.length} source{state.sources.length > 1 ? "s" : ""}</span>
+      <span className="text-ink-muted">
+        Consensus as of <span className="text-ink">{new Date(fresh.newest.date).toLocaleDateString()}</span>
+        <span className="text-ink-ghost"> · {fresh.newest.name} · {state.sources.length} source{state.sources.length > 1 ? "s" : ""}</span>
       </span>
       <span className="grow" />
-      {running && step && <span className="truncate text-slate-500">{step.label}…</span>}
-      {!running && msg && <span className="truncate text-slate-500">{msg}</span>}
+      {running && step && <span className="truncate text-ink-faint">{step.label}…</span>}
+      {!running && msg && <span className="truncate text-ink-faint">{msg}</span>}
       <button onClick={() => refreshAll()} disabled={running}
         title="Re-pull every source the app can reach — the same run as Setup's one button"
-        className="rounded border border-slate-700 px-2 py-0.5 text-slate-300 hover:border-sky-500 hover:text-sky-300 disabled:opacity-40">
+        className="rounded border border-line px-2 py-0.5 text-ink-muted hover:border-accent hover:text-accent disabled:opacity-40">
         {running ? "Refreshing…" : "Refresh"}
       </button>
     </div>
@@ -600,10 +600,13 @@ export default function Board() {
   if (!board.rows.length) return <Onboard />;
 
   const sourceCols = [...board.rankSources, ...board.adpSources];
-  const th = "px-2 py-1.5 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-400 whitespace-nowrap";
+  // Column headers are signage, not prose: they get read once to locate a
+  // column and then never again, so they go small, upper and widely tracked and
+  // stop competing with the numbers underneath them.
+  const th = "label whitespace-nowrap px-2 py-2 text-left text-ink-faint";
   const sortBtn = (key, label, title) => (
     <button title={title} onClick={() => setSortKey(sortKey === key ? "my" : key)}
-      className={sortKey === key ? "text-sky-300" : "hover:text-slate-200"}>{label}{sortKey === key ? " ↓" : ""}</button>
+      className={sortKey === key ? "text-accent" : "hover:text-ink"}>{label}{sortKey === key ? " ↓" : ""}</button>
   );
 
   // How far this player sits from where I have him, in the current lens.
@@ -652,34 +655,34 @@ export default function Board() {
       style={{ "--panelMax": scrollportH ? `${scrollportH}px` : "100dvh" }}>
       <div className="min-w-0 flex-1">
         {/* toolbar */}
-        <div ref={toolbarRef} className="sticky top-0 z-20 border-b border-slate-800 bg-slate-950/95 px-2 py-2 backdrop-blur md:px-3">
+        <div ref={toolbarRef} className="sticky top-0 z-20 border-b border-line bg-ground/95 px-2 py-2 backdrop-blur md:px-3">
           <FreshnessStrip />
           {staleSources.length > 0 && (
-            <div className="mb-2 rounded border border-amber-500/40 bg-amber-500/10 px-2 py-1 text-xs text-amber-300">
+            <div className="mb-2 rounded border border-warn/40 bg-warn/10 px-2 py-1 text-xs text-warn">
               ⚠ {staleSources.map((s) => s.name).join(", ")} {staleSources.length > 1 ? "are" : "is"} more than 7 days old — re-import before drafting.
             </div>
           )}
           <div className="flex flex-wrap items-center gap-1.5">
             <input ref={searchRef} value={query} onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search  ( / )" className="w-36 rounded border border-slate-700 bg-slate-900 px-2 py-1 text-sm md:w-48" />
+              placeholder="Search  ( / )" className="w-36 border border-line bg-panel px-2.5 py-1.5 text-[13px] placeholder:text-ink-ghost md:w-48" />
             {POSITIONS.map((pos) => (
               <button key={pos} onClick={() => setPosFilter(posFilter === pos ? null : pos)}
-                className={`rounded border px-2 py-0.5 text-xs font-bold ${posFilter === pos ? posStyle(pos).chip : "border-slate-800 text-slate-500 hover:border-slate-600"}`}>
+                className={`taper border px-2.5 py-1 text-[10px] font-bold uppercase tracking-label transition-colors ${posFilter === pos ? posStyle(pos).chip : "border-line text-ink-faint hover:border-ink hover:text-ink"}`}>
                 {pos}
               </button>
             ))}
-            <span className="mx-1 hidden h-4 w-px bg-slate-800 md:block" />
+            <span className="mx-1 hidden h-4 w-px bg-band md:block" />
             {TAGS.map((t) => (
               <button key={t.key} onClick={() => setTagFilter(tagFilter === t.key ? null : t.key)}
-                className={`hidden items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] md:inline-flex ${tagFilter === t.key ? t.cls : "border-slate-800 text-slate-500 hover:border-slate-600"}`}>
+                className={`hidden items-center gap-1.5 border px-2 py-1 text-[10px] font-semibold uppercase tracking-label transition-colors md:inline-flex ${tagFilter === t.key ? t.cls : "border-line text-ink-faint hover:border-ink hover:text-ink"}`}>
                 <span className={`h-1.5 w-1.5 rounded-full ${t.dot}`} />{t.label}
               </button>
             ))}
             <span className="grow" />
-            <label className="flex items-center gap-1 text-[11px] text-slate-500">
-              View
+            <label className="flex items-center gap-1.5">
+              <span className="label text-ink-faint">View</span>
               <select value={sortKey} onChange={(e) => setSortKey(e.target.value)}
-                className="rounded border border-slate-700 bg-slate-900 px-1.5 py-1 text-xs text-slate-200">
+                className="border border-line bg-panel px-2 py-1 text-[11px] text-ink">
                 <option value="my">My order</option>
                 <option value="consensus">Consensus</option>
                 {sourceCols.map((s) => <option key={s.id} value={`src:${s.id}`}>{s.name}</option>)}
@@ -689,50 +692,50 @@ export default function Board() {
                 this leaves my order alone and writes the room's opinion beside it. */}
             <button onClick={() => setUI({ overlay: !overlay })}
               title="Keep my order and my dragging, and label each row with where consensus would have him"
-              className={`rounded border px-2 py-1 text-xs ${overlay ? "border-sky-500 bg-sky-500/10 text-sky-300" : "border-slate-700 text-slate-300 hover:border-sky-500"}`}>
+              className={`taper border px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-label transition-colors ${overlay ? "border-accent bg-accent/10 text-accent" : "border-line text-ink-muted hover:border-ink hover:text-ink"}`}>
               {overlay ? "✓ " : ""}Consensus overlay
             </button>
-            <div className="flex overflow-hidden rounded border border-slate-700 text-xs">
+            <div className="flex overflow-hidden border border-line">
               {[["full", "Full"], ["compact", "Draft day"]].map(([k, label]) => (
                 <button key={k} onClick={() => setUI({ density: k })}
                   title={k === "compact"
                     ? "Rank, position, player, consensus. Everything analytical folds away for while picks are flying."
                     : "Every source column and every derived metric — the prep view."}
-                  className={`px-2 py-1 ${state.ui.density === k ? "bg-slate-800 font-medium text-slate-100" : "text-slate-400 hover:text-slate-200"}`}>
+                  className={`px-2 py-1 ${state.ui.density === k ? "bg-band font-medium text-ink" : "text-ink-muted hover:text-ink"}`}>
                   {label}
                 </button>
               ))}
             </div>
             <span draggable onDragStart={(e) => onDragStart(e, "new", "newTier")}
               title="Drag onto a player to drop a tier divider above him"
-              className="hidden cursor-grab select-none items-center gap-1 rounded border border-dashed border-slate-600 px-2 py-1 text-xs text-slate-400 hover:border-sky-500 hover:text-sky-300 active:cursor-grabbing md:inline-flex">
+              className="hidden cursor-grab select-none items-center gap-1 rounded border border-dashed border-line-strong px-2 py-1 text-xs text-ink-muted hover:border-accent hover:text-accent active:cursor-grabbing md:inline-flex">
               ⠿ drag divider
             </span>
             <button onClick={autoTiers} title={`Cut tiers on consensus gaps within ${posFilter || "the full board"}`}
-              className="rounded border border-slate-700 px-2 py-1 text-xs text-slate-300 hover:border-sky-500">
+              className="rounded border border-line px-2 py-1 text-xs text-ink-muted hover:border-accent">
               Suggest {posFilter ? `${posFilter} ` : ""}tiers
             </button>
             {scopeBreaks.length > 0 && (
               <button onClick={() => dispatch({ type: "SET_TIER_BREAKS", scope: tierScope, breaks: [] })}
                 title={`Remove the ${scopeBreaks.length} tier break${scopeBreaks.length > 1 ? "s" : ""} in ${posFilter || "the full board"} (other views keep theirs)`}
-                className="rounded border border-slate-700 px-2 py-1 text-xs text-slate-300 hover:border-rose-500 hover:text-rose-300">
+                className="rounded border border-line px-2 py-1 text-xs text-ink-muted hover:border-behind hover:text-behind">
                 Clear {posFilter ? `${posFilter} ` : ""}tiers
               </button>
             )}
             <button onClick={startFromConsensus} title="Reorder my ranks to consensus"
-              className="rounded border border-slate-700 px-2 py-1 text-xs text-slate-300 hover:border-sky-500">→ consensus order</button>
+              className="rounded border border-line px-2 py-1 text-xs text-ink-muted hover:border-accent">→ consensus order</button>
           </div>
           {sortKey !== "my" && (
-            <div className="mt-1 text-[11px] text-slate-400">
-              Viewing through <span className="text-sky-300">{lensName}</span> — ▲▼ shows how far each player moves from your order.
+            <div className="mt-1 text-[11px] text-ink-muted">
+              Viewing through <span className="text-accent">{lensName}</span> — ▲▼ shows how far each player moves from your order.
               Dragging and tiers are paused{overlay ? ", and the overlay badge is off while a lens is doing the same job" : ""}.
-              {" "}<button className="text-sky-400" onClick={() => setSortKey("my")}>Back to my order</button>
+              {" "}<button className="text-accent" onClick={() => setSortKey("my")}>Back to my order</button>
             </div>
           )}
           {showOverlay && (
-            <div className="mt-1 text-[11px] text-slate-400">
-              Your order, your tiers, your dragging — <span className="text-sky-300">c#</span> on each row is where consensus
-              would have him among these players instead. <button className="text-sky-400" onClick={() => setUI({ overlay: false })}>Hide overlay</button>
+            <div className="mt-1 text-[11px] text-ink-muted">
+              Your order, your tiers, your dragging — <span className="text-accent">c#</span> on each row is where consensus
+              would have him among these players instead. <button className="text-accent" onClick={() => setUI({ overlay: false })}>Hide overlay</button>
             </div>
           )}
         </div>
@@ -744,14 +747,14 @@ export default function Board() {
             table and covering the first rows. Wide boards scroll on <main>. */}
         <div className="hidden md:block">
           <table className="w-full border-collapse text-sm">
-            <thead className="sticky z-10 bg-slate-950" style={{ top: toolbarH }}>
-              <tr className="border-b border-slate-800">
+            <thead className="sticky z-10 bg-ground" style={{ top: toolbarH }}>
+              <tr className="border-b border-line">
                 <th className={th}>#</th>
                 <th className={th} title="Rank within position, in my order">Pos#</th>
                 <th className={th}>Player</th>
                 {shownSources.map((s) => (
                   <th key={s.id} className={th} title={`${s.type.toUpperCase()} · imported ${new Date(s.date).toLocaleDateString()}${daysAgo(s.date) > 7 ? " · STALE" : ""}`}>
-                    {s.name}{daysAgo(s.date) > 7 && <span className="text-amber-400">*</span>}
+                    {s.name}{daysAgo(s.date) > 7 && <span className="text-warn">*</span>}
                   </th>
                 ))}
                 <th className={th}>{sortBtn("consensus", "Cons", consLabel)}</th>
@@ -780,19 +783,25 @@ export default function Board() {
                       <tr draggable={tier > 1}
                         onDragStart={(e) => onDragStart(e, breakIdx ?? 0, "tier")}
                         onDragOver={(e) => e.preventDefault()} onDrop={(e) => onDropRow(e, r.id)}
-                        className="group cursor-grab select-none bg-slate-900/80">
-                        <td colSpan={colCount} className="border-y border-slate-700/60 px-2 py-1 text-[11px] font-bold uppercase tracking-widest text-slate-400">
+                        className="group cursor-grab select-none bg-band">
+                        {/* A tier break is a cliff in value, so it reads as a
+                            hard rule with the tier number set in the ink block
+                            — the same weight the app gives an active tab. */}
+                        <td colSpan={colCount} className="border-y border-line px-2 py-1.5">
                           <div className="flex items-center gap-2">
-                            <span className="shrink-0">⠿ Tier {tier}</span>
+                            <span className="num taper shrink-0 bg-ink px-2 py-0.5 text-[10px] font-bold tracking-label text-ink-invert">
+                              {String(tier).padStart(2, "0")}
+                            </span>
+                            <span className="label shrink-0 text-ink-faint">Tier</span>
                             <input value={tierNames[tier] ?? ""} placeholder="name this tier"
                               draggable={false} onDragStart={(e) => e.preventDefault()}
                               onClick={(e) => e.stopPropagation()}
                               onChange={(e) => dispatch({ type: "SET_TIER_NAME", scope: tierScope, tier, name: e.target.value })}
-                              className="w-48 rounded border border-transparent bg-transparent px-1 py-0.5 text-[11px] font-semibold normal-case tracking-normal text-slate-200 placeholder:font-normal placeholder:text-slate-600 hover:border-slate-700 focus:border-sky-600 focus:bg-slate-950 focus:outline-none" />
+                              className="w-48 rounded border border-transparent bg-transparent px-1 py-0.5 text-[11px] font-semibold normal-case tracking-normal text-ink placeholder:font-normal placeholder:text-ink-ghost hover:border-line focus:border-accent focus:bg-ground focus:outline-none" />
                             {breakIdx !== undefined && (
                               <button draggable={false} title="Pull this divider out (merges into the tier above)"
                                 onClick={(e) => { e.stopPropagation(); dispatch({ type: "TOGGLE_TIER_BREAK", scope: tierScope, index: breakIdx }); }}
-                                className="rounded px-1 leading-none text-slate-600 opacity-0 transition hover:bg-slate-800 hover:text-rose-300 focus:opacity-100 group-hover:opacity-100">
+                                className="rounded px-1 leading-none text-ink-ghost opacity-0 transition hover:bg-band hover:text-behind focus:opacity-100 group-hover:opacity-100">
                                 ✕
                               </button>
                             )}
@@ -806,51 +815,51 @@ export default function Board() {
                       onDrop={(e) => onDropRow(e, r.id)}
                       onClick={() => setSelected(r.id)}
                       onDoubleClick={() => setDetail(r.id)}
-                      className={`cursor-pointer border-b border-slate-800/60 hover:bg-slate-900 ${sel ? "bg-sky-500/10 ring-1 ring-inset ring-sky-500/40" : ""}`}>
+                      className={`cursor-pointer border-b border-line hover:bg-panel-raised ${sel ? "bg-accent/10 ring-1 ring-inset ring-accent/40" : ""}`}>
                       {/* My rank and consensus are the two numbers the whole
                           table exists to compare, so they get chip weight and
                           everything else stays plain. */}
                       <td className="px-2 py-1 whitespace-nowrap">
                         <span className="inline-flex items-center gap-1">
-                          <span className="rounded bg-slate-800 px-1.5 py-0.5 text-sm font-semibold tabular-nums text-slate-100">{r.myRank}</span>
+                          <span className="num taper bg-ink px-2 py-0.5 text-[13px] font-bold text-ink-invert">{String(r.myRank).padStart(2, "0")}</span>
                           <ConsGap myRank={r.myRank} consensus={r.consensus} />
                           {showOverlay && consensusPos?.get(r.id) != null && (
                             <ConsPos my={myPos.get(r.id)} theirs={consensusPos.get(r.id)} />
                           )}
                           {lensMove(r) != null && (
-                            <span className={`text-[10px] ${lensMove(r) > 0 ? "text-emerald-400" : lensMove(r) < 0 ? "text-rose-400" : "text-slate-600"}`}>
+                            <span className={`text-[10px] ${lensMove(r) > 0 ? "text-ahead" : lensMove(r) < 0 ? "text-behind" : "text-ink-ghost"}`}>
                               {lensMove(r) > 0 ? `▲${lensMove(r)}` : lensMove(r) < 0 ? `▼${-lensMove(r)}` : "="}
                             </span>
                           )}
                         </span>
                       </td>
-                      <td className={`px-2 py-1 whitespace-nowrap tabular-nums text-[11px] font-medium ${ps.text}`}>{r.p.pos}{r.posRank}</td>
+                      <td className={`num whitespace-nowrap px-2 py-1 text-[11px] font-semibold ${ps.text}`}>{r.p.pos}{r.posRank}</td>
                       <td className="px-2 py-1">
                         <div className="flex items-center">
                           <span className={`mr-2 h-4 w-1 rounded-sm ${ps.rail}`} />
-                          <span className="font-medium">{r.p.name}</span>
+                          <span className="text-[13px] font-semibold tracking-tight">{r.p.name}</span>
                           <span className={`ml-1.5 text-[11px] font-bold ${ps.text}`}>{r.p.pos}</span>
-                          <span className="ml-1 text-[11px] text-slate-500">{r.p.team || "FA"} · {r.p.bye ?? "?"}</span>
+                          <span className="ml-1 text-[11px] text-ink-faint">{r.p.team || "FA"} · {r.p.bye ?? "?"}</span>
                           <InjuryBadge p={r.p} /><TagDots p={r.p} />
-                          {r.p.handcuffOf && <span title={`Handcuff of ${state.players[r.p.handcuffOf]?.name}`} className="ml-1 text-[10px] text-orange-300">⛓</span>}
-                          {r.p.notes && <span title={r.p.notes} className="ml-1 text-[10px] text-slate-500">✎</span>}
+                          {r.p.handcuffOf && <span title={`Handcuff of ${state.players[r.p.handcuffOf]?.name}`} className="ml-1 text-[10px] text-pos-TE">⛓</span>}
+                          {r.p.notes && <span title={r.p.notes} className="ml-1 text-[10px] text-ink-faint">✎</span>}
                         </div>
                       </td>
                       {shownSources.map((s) => (
-                        <td key={s.id} className="px-2 py-1 tabular-nums text-slate-400">{r.perSource[s.id] != null ? fmt(r.perSource[s.id], s.type === "adp" ? 1 : 0) : "–"}</td>
+                        <td key={s.id} className="px-2 py-1 tabular-nums text-ink-muted">{r.perSource[s.id] != null ? fmt(r.perSource[s.id], s.type === "adp" ? 1 : 0) : "–"}</td>
                       ))}
                       <td className="px-2 py-1 whitespace-nowrap">
                         <span className="inline-flex items-center gap-1.5">
-                          <span className="rounded bg-slate-800/70 px-1.5 py-0.5 text-sm font-semibold tabular-nums text-slate-200">{fmt(r.consensus, 1)}</span>
+                          <span className="num taper border border-line bg-panel px-2 py-0.5 text-[13px] font-semibold text-ink">{fmt(r.consensus, 1)}</span>
                           <RankBar compact myRank={r.myRank} consensus={r.consensus} sources={opinionsFor(r)} />
                         </span>
                       </td>
                       {!compact && <>
-                        <td className={`px-2 py-1 tabular-nums ${r.sigma > 12 ? "text-fuchsia-300" : "text-slate-400"}`}>{fmt(r.sigma, 1)}</td>
+                        <td className={`px-2 py-1 tabular-nums ${r.sigma > 12 ? "text-warn" : "text-ink-muted"}`}>{fmt(r.sigma, 1)}</td>
                         <td className="px-2 py-1 tabular-nums"><Delta v={r.yahooDelta} invert /></td>
                         <td className="px-2 py-1 tabular-nums"><Delta v={r.adpDelta} d={0} /></td>
-                        <td className="px-2 py-1 tabular-nums text-slate-300">{fmt(r.pts, 0)}</td>
-                        <td className={`px-2 py-1 tabular-nums font-medium ${r.vor > 0 ? "text-emerald-300" : "text-slate-500"}`}>{fmt(r.vor, 0)}</td>
+                        <td className="px-2 py-1 tabular-nums text-ink-muted">{fmt(r.pts, 0)}</td>
+                        <td className={`px-2 py-1 tabular-nums font-medium ${r.vor > 0 ? "text-ahead" : "text-ink-faint"}`}>{fmt(r.vor, 0)}</td>
                         <td className="px-2 py-1"><Trend p={r.p} trending={state.trending} /></td>
                       </>}
                     </tr>
@@ -859,7 +868,7 @@ export default function Board() {
               })}
             </tbody>
           </table>
-          <div className="px-3 py-2 text-[11px] text-slate-600">
+          <div className="px-3 py-2 text-[11px] text-ink-ghost">
             Keys: ↑↓ move selection · shift+↑↓ or [ ] re-rank · / search · 1–5 tags · t add/remove a tier break above the selected row · enter detail. Drag rows to reorder; drag ⠿ tier bars to move a cliff; ✕ on a tier bar deletes it.
             {" The bar in Cons puts every source on one scale: the grey band is where they cluster, the pale tick is the Cons value, the blue tick is you."}
             {!board.hasProj && !compact && " Pts≈ uses a generic curve — import a projections CSV for scoring-aware values."}
@@ -879,13 +888,19 @@ export default function Board() {
             return (
               <React.Fragment key={r.id}>
                 {header && (
-                  <div className="sticky z-10 border-y border-slate-700/60 bg-slate-900 px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-slate-400" style={{ top: toolbarH }}>
-                    <div className="flex items-center justify-between">
-                      <span className="truncate">Tier {tier}{tierNames[tier] ? ` · ${tierNames[tier]}` : ""}</span>
+                  <div className="sticky z-10 border-y border-line bg-band px-3 py-1.5" style={{ top: toolbarH }}>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="flex min-w-0 items-center gap-2">
+                        <span className="num taper shrink-0 bg-ink px-2 py-0.5 text-[10px] font-bold tracking-label text-ink-invert">
+                          {String(tier).padStart(2, "0")}
+                        </span>
+                        <span className="label shrink-0 text-ink-faint">Tier</span>
+                        {tierNames[tier] && <span className="truncate text-[11px] font-semibold text-ink">{tierNames[tier]}</span>}
+                      </span>
                       {breakIdx !== undefined && (
                         <button title="Delete this tier break"
                           onClick={(e) => { e.stopPropagation(); dispatch({ type: "TOGGLE_TIER_BREAK", scope: tierScope, index: breakIdx }); }}
-                          className="-my-1 rounded px-2 py-1 text-slate-500 active:text-rose-300">
+                          className="-my-1 rounded px-2 py-1 text-ink-faint active:text-behind">
                           ✕
                         </button>
                       )}
@@ -894,9 +909,9 @@ export default function Board() {
                 )}
                 <div onTouchStart={(e) => onTouchStart(e, r.id)} onTouchEnd={(e) => onTouchEnd(e, r.id)}
                   onClick={() => setDetail(r.id)}
-                  className="flex items-center gap-2 border-b border-slate-800/70 px-3 py-2.5 active:bg-slate-900">
+                  className="flex items-center gap-2 border-b border-line px-3 py-2.5 active:bg-panel-raised">
                   <span className="flex w-9 shrink-0 flex-col items-end gap-0.5">
-                    <span className="rounded bg-slate-800 px-1.5 py-0.5 text-sm font-semibold tabular-nums text-slate-100">{r.myRank}</span>
+                    <span className="num taper bg-ink px-2 py-0.5 text-[13px] font-bold text-ink-invert">{String(r.myRank).padStart(2, "0")}</span>
                     <ConsGap myRank={r.myRank} consensus={r.consensus} />
                   </span>
                   <span className={`h-8 w-1 rounded-sm ${ps.rail}`} />
@@ -908,9 +923,9 @@ export default function Board() {
                         <span className="ml-1 shrink-0"><ConsPos my={myPos.get(r.id)} theirs={consensusPos.get(r.id)} /></span>
                       )}
                     </div>
-                    <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-slate-500">
+                    <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-ink-faint">
                       <span className="shrink-0">{r.p.pos}{r.posRank} · {r.p.team || "FA"} · bye {r.p.bye ?? "?"}</span>
-                      <span className="rounded bg-slate-800/70 px-1 py-0.5 font-semibold tabular-nums text-slate-200">{fmt(r.consensus, 0)}</span>
+                      <span className="num taper border border-line px-1.5 py-0.5 font-semibold text-ink">{fmt(r.consensus, 0)}</span>
                       <RankBar compact width={44} myRank={r.myRank} consensus={r.consensus} sources={opinionsFor(r)} />
                       {!compact && <span className="shrink-0">σ {fmt(r.sigma, 0)}</span>}
                     </div>
@@ -918,18 +933,18 @@ export default function Board() {
                   {!compact && (
                     <div className="text-right">
                       <div className="text-xs tabular-nums"><Delta v={r.adpDelta} d={0} /></div>
-                      <div className={`text-[11px] tabular-nums ${r.vor > 0 ? "text-emerald-300" : "text-slate-600"}`}>VOR {fmt(r.vor, 0)}</div>
+                      <div className={`text-[11px] tabular-nums ${r.vor > 0 ? "text-ahead" : "text-ink-ghost"}`}>VOR {fmt(r.vor, 0)}</div>
                     </div>
                   )}
                   <div className="flex flex-col gap-1 pl-1" onClick={(e) => e.stopPropagation()}>
-                    <button className="rounded bg-slate-800 px-2 py-1 text-xs" onClick={() => dispatch({ type: "MOVE", id: r.id, delta: -1 })}>▲</button>
-                    <button className="rounded bg-slate-800 px-2 py-1 text-xs" onClick={() => dispatch({ type: "MOVE", id: r.id, delta: 1 })}>▼</button>
+                    <button className="rounded bg-band px-2 py-1 text-xs" onClick={() => dispatch({ type: "MOVE", id: r.id, delta: -1 })}>▲</button>
+                    <button className="rounded bg-band px-2 py-1 text-xs" onClick={() => dispatch({ type: "MOVE", id: r.id, delta: 1 })}>▼</button>
                   </div>
                 </div>
               </React.Fragment>
             );
           })}
-          <div className="px-3 py-2 text-[11px] text-slate-600">Swipe right → Favorite · swipe left → Avoid · tap for detail.</div>
+          <div className="px-3 py-2 text-[11px] text-ink-ghost">Swipe right → Favorite · swipe left → Avoid · tap for detail.</div>
         </div>
       </div>
 
@@ -940,7 +955,7 @@ export default function Board() {
           {/* Desktop: sticky + self-start so it holds its own screenful and
               scrolls internally while the list moves behind it. Mobile keeps
               the fixed bottom-sheet treatment. */}
-          <div className="fixed inset-x-0 bottom-0 z-40 max-h-[85vh] rounded-t-2xl border-t border-slate-700 bg-slate-950 md:sticky md:top-0 md:z-auto md:max-h-[var(--panelMax)] md:self-start md:w-[380px] md:shrink-0 md:overflow-y-auto md:rounded-none md:border-l md:border-t-0">
+          <div className="fixed inset-x-0 bottom-0 z-40 max-h-[85vh] rounded-t-2xl border-t border-line bg-ground md:sticky md:top-0 md:z-auto md:max-h-[var(--panelMax)] md:self-start md:w-[380px] md:shrink-0 md:overflow-y-auto md:rounded-none md:border-l md:border-t-0">
             <DetailPanel id={detail} onClose={() => setDetail(null)} />
           </div>
         </>

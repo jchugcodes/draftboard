@@ -23,21 +23,27 @@ export function sourceFreshness(sources, now = Date.now()) {
 
 export const POSITIONS = ["QB", "RB", "WR", "TE", "K", "DST"];
 
+// One colour per position, resolved through theme tokens so a position reads
+// the same on either ground. `rail` is the spine down the left of a row — the
+// fastest positional cue there is, because it needs no reading at all.
+//
+// Spelled out rather than built from a template: Tailwind finds classes by
+// scanning source text, so a name assembled at runtime is a name it purges.
 export const POS_STYLE = {
-  QB: { chip: "bg-rose-500/15 text-rose-300 border-rose-500/30", rail: "bg-rose-400", text: "text-rose-300" },
-  RB: { chip: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30", rail: "bg-emerald-400", text: "text-emerald-300" },
-  WR: { chip: "bg-sky-500/15 text-sky-300 border-sky-500/30", rail: "bg-sky-400", text: "text-sky-300" },
-  TE: { chip: "bg-amber-500/15 text-amber-300 border-amber-500/30", rail: "bg-amber-400", text: "text-amber-300" },
-  K: { chip: "bg-violet-500/15 text-violet-300 border-violet-500/30", rail: "bg-violet-400", text: "text-violet-300" },
-  DST: { chip: "bg-slate-500/15 text-slate-300 border-slate-500/30", rail: "bg-slate-400", text: "text-slate-300" },
+  QB: { chip: "bg-pos-QB/12 text-pos-QB border-pos-QB/40", rail: "bg-pos-QB", text: "text-pos-QB" },
+  RB: { chip: "bg-pos-RB/12 text-pos-RB border-pos-RB/40", rail: "bg-pos-RB", text: "text-pos-RB" },
+  WR: { chip: "bg-pos-WR/12 text-pos-WR border-pos-WR/40", rail: "bg-pos-WR", text: "text-pos-WR" },
+  TE: { chip: "bg-pos-TE/12 text-pos-TE border-pos-TE/40", rail: "bg-pos-TE", text: "text-pos-TE" },
+  K:  { chip: "bg-pos-K/12 text-pos-K border-pos-K/40",    rail: "bg-pos-K",  text: "text-pos-K" },
+  DST:{ chip: "bg-pos-DST/12 text-pos-DST border-pos-DST/40", rail: "bg-pos-DST", text: "text-pos-DST" },
 };
 
 export const TAGS = [
-  { key: "favorite", label: "Favorite", num: "1", cls: "bg-yellow-400/15 text-yellow-300 border-yellow-400/40", dot: "bg-yellow-400" },
-  { key: "sleeper", label: "Sleeper", num: "2", cls: "bg-purple-400/15 text-purple-300 border-purple-400/40", dot: "bg-purple-400" },
-  { key: "reliable", label: "Reliable", num: "3", cls: "bg-teal-400/15 text-teal-300 border-teal-400/40", dot: "bg-teal-400" },
-  { key: "avoid", label: "Avoid", num: "4", cls: "bg-red-400/15 text-red-300 border-red-400/40", dot: "bg-red-400" },
-  { key: "handcuff", label: "Handcuff", num: "5", cls: "bg-orange-400/15 text-orange-300 border-orange-400/40", dot: "bg-orange-400" },
+  { key: "favorite", label: "Favorite", num: "1", cls: "bg-tag-favorite/15 text-tag-favorite border-tag-favorite/40", dot: "bg-tag-favorite" },
+  { key: "sleeper", label: "Sleeper", num: "2", cls: "bg-tag-sleeper/15 text-tag-sleeper border-tag-sleeper/40", dot: "bg-tag-sleeper" },
+  { key: "reliable", label: "Reliable", num: "3", cls: "bg-tag-reliable/15 text-tag-reliable border-tag-reliable/40", dot: "bg-tag-reliable" },
+  { key: "avoid", label: "Avoid", num: "4", cls: "bg-tag-avoid/15 text-tag-avoid border-tag-avoid/40", dot: "bg-tag-avoid" },
+  { key: "handcuff", label: "Handcuff", num: "5", cls: "bg-tag-handcuff/15 text-tag-handcuff border-tag-handcuff/40", dot: "bg-tag-handcuff" },
 ];
 
 export const NFL_TEAMS = ["ARI","ATL","BAL","BUF","CAR","CHI","CIN","CLE","DAL","DEN","DET","GB","HOU","IND","JAX","KC","LAC","LAR","LV","MIA","MIN","NE","NO","NYG","NYJ","PHI","PIT","SEA","SF","TB","TEN","WAS"];

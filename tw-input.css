@@ -1,9 +1,166 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ---------------------------------------------------------------------------
+   Type. Two families on purpose, which is the one idea worth stealing wholesale
+   from the reference: words in a geometric sans, every number in a mono face.
+   A board is a wall of digits, and giving them their own voice — same width per
+   glyph, so columns line up and a 3 never sits narrower than an 8 — is what
+   turns a spreadsheet into an instrument you can read at a glance.
+
+   Both are variable fonts served from our own origin: Google hands out one file
+   per family covering the whole weight axis, so the whole type system is 76 KB
+   and survives going offline mid-draft.
+--------------------------------------------------------------------------- */
+@font-face {
+  font-family: "Montserrat";
+  src: url("./fonts/montserrat-var.woff2") format("woff2");
+  font-weight: 100 900;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Roboto Mono";
+  src: url("./fonts/robotomono-var.woff2") format("woff2");
+  font-weight: 100 700;
+  font-display: swap;
+}
+
+/* ---------------------------------------------------------------------------
+   Tokens. Every colour in the app resolves through one of these, so the light
+   and dark grounds are the same design wearing different clothes rather than
+   two designs that drift. Names say the role, never the colour: --ink-faint
+   stays meaningful when the ground flips, --slate-400 does not.
+
+   Values are bare RGB channels rather than hex so Tailwind can inject alpha —
+   that is what keeps bg-panel/95 and border-pos-QB/40 available instead of
+   forcing a hand-written token for every translucent variant.
+--------------------------------------------------------------------------- */
+:root {
+  /* ground: page, sunken wells, raised panels, the band behind a tier header */
+  --ground: 255 255 255;
+  --ground-sunken: 244 244 245;
+  --panel: 255 255 255;
+  --panel-raised: 250 250 250;
+  --band: 235 235 236;
+
+  /* ink: text, in descending confidence */
+  --ink: 0 0 0;
+  --ink-muted: 82 82 91;
+  --ink-faint: 113 113 122;
+  --ink-ghost: 161 161 170;
+  --ink-invert: 255 255 255;
+
+  /* structure — the reference's panel grey, used as a rule */
+  --line: 215 215 215;
+  --line-strong: 161 161 170;
+
+  /* accent: mine, and the focus state. Pure blue is the reference's own. */
+  --accent: 0 0 255;
+  --focus: 66 53 243;
+
+  /* verdicts. Direction, not decoration: ahead of the room vs behind it. */
+  --ahead: 4 120 87;
+  --behind: 190 18 60;
+  --warn: 180 83 9;
+
+  /* positions */
+  --pos-qb: 190 18 60;
+  --pos-rb: 4 120 87;
+  --pos-wr: 29 78 216;
+  --pos-te: 180 83 9;
+  --pos-k: 109 40 217;
+  --pos-dst: 82 82 91;
+
+  /* tags: what I think of a player, kept apart from what he is (position) and
+     from where the market has him (verdict), so the three never blur */
+  --tag-favorite: 161 98 7;
+  --tag-sleeper: 109 40 217;
+  --tag-reliable: 15 118 110;
+  --tag-avoid: 190 18 60;
+  --tag-handcuff: 194 65 12;
+
+  /* the reference's signature: a nav link whose sides taper inward */
+  --taper: 3px;
+}
+
+:root[data-theme="dark"] {
+  --ground: 9 9 11;
+  --ground-sunken: 0 0 0;
+  --panel: 19 19 22;
+  --panel-raised: 28 28 32;
+  --band: 35 35 40;
+
+  --ink: 250 250 250;
+  --ink-muted: 161 161 170;
+  --ink-faint: 129 129 138;
+  --ink-ghost: 90 90 99;
+  --ink-invert: 0 0 0;
+
+  --line: 42 42 48;
+  --line-strong: 63 63 70;
+
+  /* pure blue is unreadable on black; the focus indigo carries the role */
+  --accent: 99 102 241;
+  --focus: 129 140 248;
+
+  --ahead: 52 211 153;
+  --behind: 251 113 133;
+  --warn: 251 191 36;
+
+  --pos-qb: 251 113 133;
+  --pos-rb: 52 211 153;
+  --pos-wr: 96 165 250;
+  --pos-te: 251 191 36;
+  --pos-k: 167 139 250;
+  --pos-dst: 161 161 170;
+
+  --tag-favorite: 250 204 21;
+  --tag-sleeper: 167 139 250;
+  --tag-reliable: 45 212 191;
+  --tag-avoid: 251 113 133;
+  --tag-handcuff: 251 146 60;
+}
+
 @layer base {
-  html { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-  .tabular-nums { font-variant-numeric: tabular-nums; }
+  html {
+    font-family: "Montserrat", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: rgb(var(--ground));
+    color: rgb(var(--ink));
+  }
+  body { background: rgb(var(--ground)); }
+
+  /* Numbers get the mono face wherever they carry meaning. tabular-nums is
+     belt and braces: it also fixes the fallback face while the woff2 loads. */
+  .tabular-nums, .num {
+    font-family: "Roboto Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1;
+    letter-spacing: -0.01em;
+  }
+
   input[type=range] { height: 1rem; }
   @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+  ::selection { background: rgb(var(--accent)); color: rgb(var(--ink-invert)); }
+  :focus-visible { outline: 2px solid rgb(var(--focus)); outline-offset: 2px; }
+}
+
+@layer components {
+  /* A column header, a tier name, a section label: small, upper, and tracked
+     wide enough that it reads as signage rather than as text you parse. The
+     reference pushes this to .45rem; .12em is where it still scans at 10px. */
+  .label {
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-weight: 600;
+    font-size: 10px;
+    line-height: 1.2;
+  }
+  .label-lg { letter-spacing: 0.16em; font-size: 11px; }
+
+  /* The signature shape — sides drawn in by --taper, top edge full width. It
+     is barely perceptible per element and unmistakable once it repeats. */
+  .taper { clip-path: polygon(0 0, 100% 0, calc(100% - var(--taper)) 100%, var(--taper) 100%); }
+  .taper-up { clip-path: polygon(var(--taper) 0, calc(100% - var(--taper)) 0, 100% 100%, 0 100%); }
 }

@@ -4,16 +4,26 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>DraftBoard — half-PPR rankings builder</title>
-  <meta name="theme-color" content="#020617" />
+  <meta name="theme-color" content="#ffffff" />
   <meta name="description" content="Build and refine your fantasy football rankings before the draft. Offline-ready, no server." />
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="icon" href="./icons/icon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="./icons/icon-192.png" />
+  <link rel="preload" href="./fonts/montserrat-var.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="preload" href="./fonts/robotomono-var.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="stylesheet" href="./styles.css" />
+  <script>
+    // Set the ground before first paint. Without this the page renders light,
+    // then React swaps the attribute and a dark-theme user gets a white flash.
+    try {
+      var s = JSON.parse(localStorage.getItem("draftboard-v1") || "{}");
+      document.documentElement.setAttribute("data-theme", (s.ui && s.ui.theme) || "light");
+    } catch (e) { document.documentElement.setAttribute("data-theme", "light"); }
+  </script>
 </head>
-<body class="bg-slate-950">
+<body>
   <div id="root"></div>
   <script src="./app.js"></script>
 </body>

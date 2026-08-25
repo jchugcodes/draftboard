@@ -40,7 +40,7 @@ const initialState = {
   // or "compact" — the draft-day mode that leaves only rank, position, name and
   // consensus. `overlay` adds a consensus-position badge to each row without
   // taking the board out of my own order.
-  ui: { tab: "board", density: "full", overlay: false },
+  ui: { tab: "board", density: "full", overlay: false, theme: "light" },
 };
 
 function ensurePlayer(draft, { name, team, pos }) {
@@ -328,7 +328,7 @@ export function StoreProvider({ children }) {
       // state and mostly not worth restoring — except density and overlay,
       // which you would resent re-setting every time you reopen mid-draft.
       const { ui, sleeperMeta, nflAgg, ...rest } = state;
-      const persist = { ...rest, ui: { density: ui.density, overlay: ui.overlay } };
+      const persist = { ...rest, ui: { density: ui.density, overlay: ui.overlay, theme: ui.theme } };
       try {
         localStorage.setItem(LS_KEY, JSON.stringify(persist));
       } catch (e) {

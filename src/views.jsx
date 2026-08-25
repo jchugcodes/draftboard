@@ -5,11 +5,22 @@ import { computeBoard } from "./compute.js";
 import Onboard from "./onboard.jsx";
 import { useDataSync } from "./useDataSync.js";
 
-const card = "rounded-lg border border-slate-800 bg-slate-900/50 p-3 md:p-4";
-const h2 = "text-sm font-semibold uppercase tracking-wide text-slate-300";
-const btn = "rounded bg-sky-600 px-3 py-1.5 text-sm font-medium hover:bg-sky-500 disabled:opacity-40";
-const btn2 = "rounded border border-slate-700 px-3 py-1.5 text-sm text-slate-300 hover:border-sky-500";
-const input = "rounded border border-slate-700 bg-slate-950 px-2 py-1 text-sm";
+const card = "border border-line bg-panel p-3 md:p-4";
+const h2 = "label-lg text-ink";
+// Primary action is the ink block, not a coloured pill: on a white ground the
+// strongest thing available is solid black, and it keeps the accent reserved
+// for the one meaning it carries everywhere else — this is mine.
+const btn = "taper bg-ink px-4 py-2 text-[11px] font-semibold uppercase tracking-label text-ink-invert transition-opacity hover:opacity-80 disabled:opacity-30";
+const btn2 = "taper border border-line px-3 py-2 text-[11px] font-semibold uppercase tracking-label text-ink-muted transition-colors hover:border-ink hover:text-ink disabled:opacity-40";
+const input = "border border-line bg-ground px-2 py-1 text-sm";
+
+// Each source type reads differently at a glance: a ranking is an opinion, ADP
+// is what a room actually did, projections are neither.
+const SRC_BADGE = {
+  ranks: "border-accent/40 bg-accent/10 text-accent",
+  adp: "border-ink/25 bg-band text-ink-muted",
+  proj: "border-ahead/40 bg-ahead/10 text-ahead",
+};
 
 // ---------------- IMPORTS ----------------
 export function DataView() {
@@ -54,22 +65,22 @@ export function DataView() {
     <div className="mx-auto max-w-4xl space-y-4 p-3 md:p-4">
       <section className={card}>
         <h2 className={h2}>Data</h2>
-        <p className="mt-1 mb-3 text-xs text-slate-500">
+        <p className="mt-1 mb-3 text-xs text-ink-faint">
           One pass over every source that can be reached. Consensus ADP and situation grades ship with the app and
           refresh on each deploy; ESPN, Sleeper, injuries and trending are pulled live.
         </p>
         <Onboard compact />
       </section>
-      {msg && <div className="rounded border border-sky-500/40 bg-sky-500/10 px-3 py-2 text-sm text-sky-200">{msg}</div>}
+      {msg && <div className="rounded border border-accent/40 bg-accent/10 px-3 py-2 text-sm text-accent">{msg}</div>}
 
       <MergeQueue />
 
-      <details className="rounded-lg border border-slate-800 bg-slate-900/30">
-        <summary className="cursor-pointer px-3 py-2 text-xs uppercase tracking-wide text-slate-400 hover:text-slate-200">Import a file, paste a list, or load a CSV export</summary>
+      <details className="rounded-lg border border-line bg-panel-raised">
+        <summary className="cursor-pointer px-3 py-2 text-xs uppercase tracking-wide text-ink-muted hover:text-ink">Import a file, paste a list, or load a CSV export</summary>
         <div className="p-1">
       <section className={card}>
         <h2 className={h2}>Import rankings / ADP / projections</h2>
-        <p className="mt-1 text-xs text-slate-500">
+        <p className="mt-1 text-xs text-ink-faint">
           CSV or JSON with name/team/pos/bye/rank columns, or paste an unformatted list ("1. Justin Jefferson MIN WR"). Each import becomes a named column. Name ADP sources by site — a source named "Yahoo" becomes the reference ADP.
         </p>
         <div className="mt-2 flex flex-wrap gap-2">
@@ -84,13 +95,13 @@ export function DataView() {
         </div>
         <textarea value={text} onChange={(e) => setText(e.target.value)} rows={6}
           placeholder={"Paste CSV, JSON, or a plain list here…"}
-          className="mt-2 w-full rounded border border-slate-700 bg-slate-950 p-2 font-mono text-xs" />
+          className="mt-2 w-full rounded border border-line bg-ground p-2 font-mono text-xs" />
         <div className="mt-2 flex items-center gap-3">
           <button className={btn} disabled={!preview?.rows?.length} onClick={doImport}>
             Import{preview?.rows?.length ? ` ${preview.rows.length} rows` : ""}
           </button>
-          {preview?.kind && <span className="text-xs text-slate-500">Detected: {preview.kind}</span>}
-          {preview?.error && <span className="text-xs text-red-400">Parse error: {preview.error}</span>}
+          {preview?.kind && <span className="text-xs text-ink-faint">Detected: {preview.kind}</span>}
+          {preview?.error && <span className="text-xs text-behind">Parse error: {preview.error}</span>}
         </div>
       </section>
         </div>
@@ -98,15 +109,15 @@ export function DataView() {
 
       <section className={card}>
         <h2 className={h2}>Sources on the board</h2>
-        {!state.sources.length && <p className="mt-1 text-xs text-slate-500">Nothing imported yet.</p>}
+        {!state.sources.length && <p className="mt-1 text-xs text-ink-faint">Nothing imported yet.</p>}
         {state.sources.length > 0 && (
-          <p className="mt-1 text-xs text-slate-500">
-            Tick a source to count it toward <strong className="text-slate-400">Cons</strong> — the number every row on
+          <p className="mt-1 text-xs text-ink-faint">
+            Tick a source to count it toward <strong className="text-ink-muted">Cons</strong> — the number every row on
             the board is measured against. Untick the ones whose scoring format is not your league's. Projections are
             never included: they carry stat lines, not placements.
           </p>
         )}
-        <ul className="mt-2 divide-y divide-slate-800">
+        <ul className="mt-2 divide-y divide-line">
           {state.sources.map((s) => {
             const eligible = s.type !== "proj";
             const on = eligible && s.consensus !== false;
@@ -115,19 +126,19 @@ export function DataView() {
                 <input type="checkbox" checked={on} disabled={!eligible}
                   title={eligible ? "Count this source toward Cons" : "Projections never feed Cons"}
                   onChange={(e) => dispatch({ type: "SET_SOURCE_CONSENSUS", id: s.id, on: e.target.checked })}
-                  className="h-3.5 w-3.5 shrink-0 accent-sky-500 disabled:opacity-30" />
-                <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold uppercase ${s.type === "adp" ? "bg-indigo-500/20 text-indigo-300" : s.type === "proj" ? "bg-emerald-500/20 text-emerald-300" : "bg-sky-500/20 text-sky-300"}`}>{s.type}</span>
-                <span className={`font-medium ${on || !eligible ? "" : "text-slate-500 line-through decoration-slate-700"}`}>{s.name}</span>
-                <span className="text-xs text-slate-500">{Object.keys(s.map).length} players · {new Date(s.date).toLocaleDateString()}</span>
-                {daysAgo(s.date) > 7 && <span className="rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-bold text-amber-300">STALE · {daysAgo(s.date)}d</span>}
+                  className="h-3.5 w-3.5 shrink-0 accent-accent disabled:opacity-30" />
+                <span className={`taper border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-label ${SRC_BADGE[s.type] || SRC_BADGE.adp}`}>{s.type}</span>
+                <span className={`font-medium ${on || !eligible ? "" : "text-ink-faint line-through decoration-line-strong"}`}>{s.name}</span>
+                <span className="text-xs text-ink-faint">{Object.keys(s.map).length} players · {new Date(s.date).toLocaleDateString()}</span>
+                {daysAgo(s.date) > 7 && <span className="rounded bg-warn/20 px-1.5 py-0.5 text-[10px] font-bold text-warn">STALE · {daysAgo(s.date)}d</span>}
                 <span className="grow" />
-                <button className="text-xs text-red-400 hover:underline" onClick={() => dispatch({ type: "DELETE_SOURCE", id: s.id })}>remove</button>
+                <button className="text-xs text-behind hover:underline" onClick={() => dispatch({ type: "DELETE_SOURCE", id: s.id })}>remove</button>
               </li>
             );
           })}
         </ul>
         {state.sources.length > 0 && (
-          <p className="mt-2 text-[11px] text-slate-500">
+          <p className="mt-2 text-[11px] text-ink-faint">
             {board.consSources.length === 0
               ? "Nothing feeds Cons right now — the column will read “–” for every player."
               : `Cons averages ${board.consSources.length} source${board.consSources.length > 1 ? "s" : ""}: ${board.consSources.map((s) => s.name).join(", ")}.`}
@@ -135,8 +146,8 @@ export function DataView() {
         )}
       </section>
 
-      <details className="rounded-lg border border-slate-800 bg-slate-900/30">
-        <summary className="cursor-pointer px-3 py-2 text-xs uppercase tracking-wide text-slate-400 hover:text-slate-200">Fetch one source at a time</summary>
+      <details className="rounded-lg border border-line bg-panel-raised">
+        <summary className="cursor-pointer px-3 py-2 text-xs uppercase tracking-wide text-ink-muted hover:text-ink">Fetch one source at a time</summary>
         <div className="p-1">
       <section className={card}>
         <h2 className={h2}>Live market data</h2>
@@ -144,16 +155,16 @@ export function DataView() {
           <button className={btn2} onClick={syncSleeper} disabled={busy === "sleeper"}>
             {busy === "sleeper" ? "Syncing…" : "Sync Sleeper (injuries · trending · metadata)"}
           </button>
-          {state.sleeperAt && <span className="text-xs text-slate-500">last {new Date(state.sleeperAt).toLocaleString()}</span>}
+          {state.sleeperAt && <span className="text-xs text-ink-faint">last {new Date(state.sleeperAt).toLocaleString()}</span>}
         </div>
         <div className="mt-2 flex flex-wrap items-center gap-2">
           <button className={btn2} onClick={() => fetchStats(lastSeason)} disabled={busy === "nfl"}>
             {busy === "nfl" ? "Loading…" : `Fetch nflverse ${lastSeason} player stats`}
           </button>
-          <label className="text-xs text-slate-400">
+          <label className="text-xs text-ink-muted">
             or load CSV: <input type="file" accept=".csv" className="text-xs" onChange={(e) => e.target.files[0] && loadStatsFile(e.target.files[0], lastSeason)} />
           </label>
-          {state.nflSeason && <span className="text-xs text-emerald-400">✓ {state.nflSeason} loaded</span>}
+          {state.nflSeason && <span className="text-xs text-ahead">✓ {state.nflSeason} loaded</span>}
         </div>
         <div className="mt-2 flex flex-wrap items-center gap-2">
           <button className={btn2} onClick={() => syncProjections(thisSeason)} disabled={busy === "proj"}>
@@ -163,17 +174,17 @@ export function DataView() {
             {busy === "espn" ? "Fetching…" : `Fetch ESPN ${thisSeason} ranks + ADP`}
           </button>
         </div>
-        <p className="mt-2 text-[11px] text-slate-500">
+        <p className="mt-2 text-[11px] text-ink-faint">
           Sleeper feeds injury status + trending adds/drops on the board. nflverse feeds the advanced-stats panel (target share, WOPR, aDOT, snap context) and vacated-opportunity math. Sync Sleeper first — vacated opportunity compares last-season teams against current rosters.
         </p>
-        <p className="mt-1 text-[11px] text-slate-500">
-          Sources that can be pulled directly: <strong className="text-slate-400">Sleeper</strong> and
-          <strong className="text-slate-400"> ESPN</strong> in-app, plus <strong className="text-slate-400">Fantasy Football
-          Calculator</strong> consensus ADP via <code className="text-slate-400">npm run adp</code>. Yahoo requires an
+        <p className="mt-1 text-[11px] text-ink-faint">
+          Sources that can be pulled directly: <strong className="text-ink-muted">Sleeper</strong> and
+          <strong className="text-ink-muted"> ESPN</strong> in-app, plus <strong className="text-ink-muted">Fantasy Football
+          Calculator</strong> consensus ADP via <code className="text-ink-muted">npm run adp</code>. Yahoo requires an
           OAuth app, and FantasyPros requires a paid API key — both refuse anonymous requests, and their terms forbid
           scraping the pages instead. Export a CSV from either and load it above and it becomes just another column.
         </p>
-        <p className="mt-1 text-[11px] text-slate-500">
+        <p className="mt-1 text-[11px] text-ink-faint">
           Projections import as two sources: a stat projection that drives Proj + VOR under <em>your</em> scoring rules
           (replacing the approximate curve), and a half-PPR ADP column. Re-fetching adds new sources rather than
           replacing the old ones — delete the stale ones above.
@@ -200,25 +211,25 @@ function MergeQueue() {
   const { state, dispatch } = useStore();
   if (!state.mergeQueue.length) return null;
   return (
-    <section className={`${card} border-amber-500/40`}>
+    <section className={`${card} border-warn/40`}>
       <h2 className={h2}>Name matches to resolve · {state.mergeQueue.length}</h2>
-      <p className="mt-1 text-xs text-slate-500">These imported names didn't confidently match an existing player. Merge into a match or create a new player.</p>
-      <ul className="mt-2 divide-y divide-slate-800">
+      <p className="mt-1 text-xs text-ink-faint">These imported names didn't confidently match an existing player. Merge into a match or create a new player.</p>
+      <ul className="mt-2 divide-y divide-line">
         {state.mergeQueue.slice(0, 25).map((q) => (
           <li key={q.qid} className="py-2">
-            <div className="text-sm font-medium">{q.name} <span className="text-xs text-slate-500">{q.pos || "?"} · {q.team || "?"} · value {fmt(q.rank, 1)}</span></div>
+            <div className="text-sm font-medium">{q.name} <span className="text-xs text-ink-faint">{q.pos || "?"} · {q.team || "?"} · value {fmt(q.rank, 1)}</span></div>
             <div className="mt-1 flex flex-wrap gap-1.5">
               {q.candidates.map((c) => {
                 const p = state.players[c.id];
                 return p && (
                   <button key={c.id} onClick={() => dispatch({ type: "RESOLVE_MERGE", qid: q.qid, targetId: c.id })}
-                    className="rounded border border-slate-700 px-2 py-1 text-xs hover:border-emerald-500">
+                    className="rounded border border-line px-2 py-1 text-xs hover:border-ahead">
                     ≈ {p.name} ({p.pos} {p.team || "?"}) · {(c.score * 100).toFixed(0)}%
                   </button>
                 );
               })}
-              <button onClick={() => dispatch({ type: "RESOLVE_MERGE", qid: q.qid, createNew: true })} className="rounded border border-slate-700 px-2 py-1 text-xs hover:border-sky-500">+ new player</button>
-              <button onClick={() => dispatch({ type: "SKIP_MERGE", qid: q.qid })} className="rounded px-2 py-1 text-xs text-slate-500 hover:text-red-400">skip</button>
+              <button onClick={() => dispatch({ type: "RESOLVE_MERGE", qid: q.qid, createNew: true })} className="rounded border border-line px-2 py-1 text-xs hover:border-accent">+ new player</button>
+              <button onClick={() => dispatch({ type: "SKIP_MERGE", qid: q.qid })} className="rounded px-2 py-1 text-xs text-ink-faint hover:text-behind">skip</button>
             </div>
           </li>
         ))}
@@ -238,8 +249,8 @@ export function ByesView() {
     <div className="mx-auto max-w-3xl space-y-4 p-3 md:p-4">
       <section className={card}>
         <h2 className={h2}>Bye collisions across favorites</h2>
-        <p className="mt-1 text-xs text-slate-500">Players tagged ★ Favorite, grouped by bye. Two-plus favorites at the same position on the same bye is a roster-construction problem before it's a draft-day one.</p>
-        {!favs.length && <p className="mt-3 text-sm text-slate-500">Tag some favorites (key 1 on the board) to populate this view.</p>}
+        <p className="mt-1 text-xs text-ink-faint">Players tagged ★ Favorite, grouped by bye. Two-plus favorites at the same position on the same bye is a roster-construction problem before it's a draft-day one.</p>
+        {!favs.length && <p className="mt-3 text-sm text-ink-faint">Tag some favorites (key 1 on the board) to populate this view.</p>}
         <div className="mt-3 space-y-3">
           {weeks.map((w) => {
             const ps = byWeek[w];
@@ -247,10 +258,10 @@ export function ByesView() {
             ps.forEach((p) => (posCount[p.pos] = (posCount[p.pos] || 0) + 1));
             const collision = Object.values(posCount).some((c) => c >= 2);
             return (
-              <div key={w} className={`rounded border p-2 ${collision ? "border-red-500/50 bg-red-500/5" : "border-slate-800"}`}>
+              <div key={w} className={`rounded border p-2 ${collision ? "border-behind/50 bg-behind/5" : "border-line"}`}>
                 <div className="flex items-center gap-2 text-sm font-semibold">
                   Week {w} bye
-                  {collision && <span className="rounded bg-red-500/20 px-1.5 py-0.5 text-[10px] font-bold text-red-300">POSITION COLLISION</span>}
+                  {collision && <span className="rounded bg-behind/20 px-1.5 py-0.5 text-[10px] font-bold text-behind">POSITION COLLISION</span>}
                 </div>
                 <div className="mt-1 flex flex-wrap gap-1.5">
                   {ps.map((p) => (
@@ -261,7 +272,7 @@ export function ByesView() {
             );
           })}
           {favs.some((p) => p.bye == null) && (
-            <div className="text-xs text-amber-300">
+            <div className="text-xs text-warn">
               No bye on file for: {favs.filter((p) => p.bye == null).map((p) => p.name).join(", ")}. Set team byes in Settings or import a source with a bye column.
             </div>
           )}
@@ -305,11 +316,11 @@ export function HistoryView() {
             Save version
           </button>
         </div>
-        <p className="mt-2 text-[11px] text-slate-500">
+        <p className="mt-2 text-[11px] text-ink-faint">
           Versions are also captured automatically a few seconds after you stop editing. Uncommitted since the last
-          version: <span className="text-slate-300">{liveText}</span>.
+          version: <span className="text-ink-muted">{liveText}</span>.
         </p>
-        <p className="mt-1 text-[11px] text-slate-500">
+        <p className="mt-1 text-[11px] text-ink-faint">
           A version stores your order, tiers and labels, tags, notes, and scorecards — not imported sources, which stay
           shared across versions. Auto versions are culled past {MAX_HISTORY}; named ones are kept.
         </p>
@@ -317,41 +328,41 @@ export function HistoryView() {
 
       <section className={card}>
         <h2 className={h2}>History ({(state.history || []).length})</h2>
-        {!rows.length && <p className="mt-2 text-sm text-slate-500">No versions yet. Edit the board, or save one above.</p>}
+        {!rows.length && <p className="mt-2 text-sm text-ink-faint">No versions yet. Edit the board, or save one above.</p>}
         <ul className="mt-2 space-y-1.5">
           {rows.map(({ v, diff }, i) => (
-            <li key={v.id} className="rounded border border-slate-800 bg-slate-950/60 px-2 py-1.5">
+            <li key={v.id} className="rounded border border-line bg-ground/60 px-2 py-1.5">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="text-xs tabular-nums text-slate-500">{new Date(v.at).toLocaleString()}</span>
-                {i === 0 && <span className="rounded bg-emerald-500/15 px-1.5 text-[10px] font-bold text-emerald-300">LATEST</span>}
+                <span className="text-xs tabular-nums text-ink-faint">{new Date(v.at).toLocaleString()}</span>
+                {i === 0 && <span className="rounded bg-ahead/15 px-1.5 text-[10px] font-bold text-ahead">LATEST</span>}
                 {v.auto
-                  ? <span className="text-[10px] uppercase tracking-wide text-slate-600">auto</span>
-                  : <span className="text-xs font-medium text-sky-300">{v.label || "saved"}</span>}
+                  ? <span className="text-[10px] uppercase tracking-wide text-ink-ghost">auto</span>
+                  : <span className="text-xs font-medium text-accent">{v.label || "saved"}</span>}
                 <span className="grow" />
                 {confirmId === v.id ? (
                   <>
-                    <span className="text-[11px] text-amber-300">Replace the board with this version?</span>
-                    <button className="rounded border border-amber-500 px-2 py-0.5 text-xs text-amber-300"
+                    <span className="text-[11px] text-warn">Replace the board with this version?</span>
+                    <button className="rounded border border-warn px-2 py-0.5 text-xs text-warn"
                       onClick={() => { dispatch({ type: "RESTORE_VERSION", id: v.id }); setConfirmId(null); }}>Confirm</button>
-                    <button className="rounded border border-slate-700 px-2 py-0.5 text-xs text-slate-400"
+                    <button className="rounded border border-line px-2 py-0.5 text-xs text-ink-muted"
                       onClick={() => setConfirmId(null)}>Cancel</button>
                   </>
                 ) : (
                   <>
-                    <button className="rounded border border-slate-700 px-2 py-0.5 text-xs text-slate-300 hover:border-sky-500"
+                    <button className="rounded border border-line px-2 py-0.5 text-xs text-ink-muted hover:border-accent"
                       onClick={() => setConfirmId(v.id)}>Restore</button>
                     {v.auto && (
-                      <button title="Keep this one permanently" className="rounded border border-slate-700 px-2 py-0.5 text-xs text-slate-400 hover:border-sky-500"
+                      <button title="Keep this one permanently" className="rounded border border-line px-2 py-0.5 text-xs text-ink-muted hover:border-accent"
                         onClick={() => { const l = prompt("Name this version"); if (l) dispatch({ type: "RENAME_VERSION", id: v.id, label: l }); }}>Keep</button>
                     )}
-                    <button title="Delete this version" className="rounded px-1 text-xs text-slate-600 hover:text-rose-300"
+                    <button title="Delete this version" className="rounded px-1 text-xs text-ink-ghost hover:text-behind"
                       onClick={() => dispatch({ type: "DELETE_VERSION", id: v.id })}>✕</button>
                   </>
                 )}
               </div>
-              <div className="mt-0.5 text-[11px] text-slate-500">{diff ? summarizeDiff(diff, nameOf) : "starting point"}</div>
+              <div className="mt-0.5 text-[11px] text-ink-faint">{diff ? summarizeDiff(diff, nameOf) : "starting point"}</div>
               {diff?.moved?.length > 0 && (
-                <div className="mt-0.5 text-[11px] text-slate-600">
+                <div className="mt-0.5 text-[11px] text-ink-ghost">
                   {diff.moved.slice(0, 4).map((m) => `${nameOf(m.id)} ${m.from}→${m.to}`).join(" · ")}
                   {diff.moved.length > 4 ? ` · +${diff.moved.length - 4} more` : ""}
                 </div>
@@ -371,25 +382,25 @@ export function VacatedView() {
     <div className="mx-auto max-w-3xl space-y-4 p-3 md:p-4">
       <section className={card}>
         <h2 className={h2}>Vacated opportunity by team</h2>
-        <p className="mt-1 text-xs text-slate-500">
+        <p className="mt-1 text-xs text-ink-faint">
           Last-season targets, carries, and TDs from players no longer on that roster (per current Sleeper metadata). Requires both a Sleeper sync and nflverse stats — Imports tab.
         </p>
-        {!v && <p className="mt-3 text-sm text-slate-500">Not computed yet. Sync Sleeper, then fetch nflverse stats.</p>}
+        {!v && <p className="mt-3 text-sm text-ink-faint">Not computed yet. Sync Sleeper, then fetch nflverse stats.</p>}
         {v && (
           <table className="mt-3 w-full text-sm">
             <thead>
-              <tr className="border-b border-slate-800 text-left text-[11px] uppercase tracking-wide text-slate-400">
+              <tr className="border-b border-line text-left text-[11px] uppercase tracking-wide text-ink-muted">
                 <th className="py-1 pr-2">Team</th><th className="py-1 pr-2">Targets</th><th className="py-1 pr-2">Carries</th><th className="py-1 pr-2">TDs</th><th className="py-1">Who left</th>
               </tr>
             </thead>
             <tbody>
               {Object.entries(v).sort((a, b) => b[1].targets - a[1].targets).map(([team, x]) => (
-                <tr key={team} className="border-b border-slate-800/60 align-top">
+                <tr key={team} className="border-b border-line align-top">
                   <td className="py-1.5 pr-2 font-semibold">{team}</td>
-                  <td className={`py-1.5 pr-2 tabular-nums ${x.targets >= 120 ? "text-emerald-300 font-medium" : ""}`}>{x.targets}</td>
-                  <td className={`py-1.5 pr-2 tabular-nums ${x.carries >= 150 ? "text-emerald-300 font-medium" : ""}`}>{x.carries}</td>
+                  <td className={`py-1.5 pr-2 tabular-nums ${x.targets >= 120 ? "text-ahead font-medium" : ""}`}>{x.targets}</td>
+                  <td className={`py-1.5 pr-2 tabular-nums ${x.carries >= 150 ? "text-ahead font-medium" : ""}`}>{x.carries}</td>
                   <td className="py-1.5 pr-2 tabular-nums">{x.tds}</td>
-                  <td className="py-1.5 text-xs text-slate-500">{x.names.slice(0, 4).join(", ")}</td>
+                  <td className="py-1.5 text-xs text-ink-faint">{x.names.slice(0, 4).join(", ")}</td>
                 </tr>
               ))}
             </tbody>
@@ -409,7 +420,7 @@ export function SettingsView() {
   const importRef = useRef(null);
 
   const numField = (obj, key, onChange, step = 1, w = "w-16") => (
-    <label key={key} className="flex flex-col text-[11px] text-slate-400">
+    <label key={key} className="flex flex-col text-[11px] text-ink-muted">
       {key}
       <input type="number" step={step} value={obj[key]} onChange={(e) => onChange({ [key]: parseFloat(e.target.value) || 0 })}
         className={`${input} ${w} mt-0.5 tabular-nums`} />
@@ -464,19 +475,19 @@ export function SettingsView() {
           {numField(r, "teams", (p) => dispatch({ type: "SET_ROSTER", patch: p }))}
           {numField(r, "slot", (p) => dispatch({ type: "SET_ROSTER", patch: p }))}
           {["QB", "RB", "WR", "TE", "FLEX", "SFLEX", "K", "DST", "BN", "IR"].map((k) => numField(r, k, (p) => dispatch({ type: "SET_ROSTER", patch: p })))}
-          <label className="flex flex-col text-[11px] text-slate-400">
+          <label className="flex flex-col text-[11px] text-ink-muted">
             flex type
             <select value={r.flexType} onChange={(e) => dispatch({ type: "SET_ROSTER", patch: { flexType: e.target.value } })} className={`${input} mt-0.5`}>
               <option value="WRT">W/R/T</option><option value="WR/RB">W/R</option><option value="WR/TE">W/T</option>
             </select>
           </label>
         </div>
-        <div className="mt-3 rounded border border-slate-800 bg-slate-950 p-2 text-xs text-slate-400">
-          <span className="font-semibold text-slate-300">Replacement level from these settings: </span>
+        <div className="mt-3 rounded border border-line bg-ground p-2 text-xs text-ink-muted">
+          <span className="font-semibold text-ink-muted">Replacement level from these settings: </span>
           {Object.entries(board.replRank).filter(([p]) => board.replacement[p] > 0).map(([p, rk]) => (
             <span key={p} className="mr-3">{p}{rk} ≈ {fmt(board.replacement[p], 0)} pts</span>
           ))}
-          <span className="text-slate-600">· VOR on the board is measured against these baselines{board.hasProj ? "" : " (approximate curve until you import projections)"}.</span>
+          <span className="text-ink-ghost">· VOR on the board is measured against these baselines{board.hasProj ? "" : " (approximate curve until you import projections)"}.</span>
         </div>
       </section>
 
@@ -485,32 +496,32 @@ export function SettingsView() {
         <div className="mt-2 flex flex-wrap items-end gap-3">
           {Object.keys(sc).map((k) => numField(sc, k, (p) => dispatch({ type: "SET_SCORING", patch: p }), 0.05, "w-20"))}
         </div>
-        <p className="mt-2 text-[11px] text-slate-500">These weights re-score any imported stat-projection source, which drives Proj and VOR. TE premium is added per TE reception on top of ppr.</p>
+        <p className="mt-2 text-[11px] text-ink-faint">These weights re-score any imported stat-projection source, which drives Proj and VOR. TE premium is added per TE reception on top of ppr.</p>
       </section>
 
       <section className={card}>
         <h2 className={h2}>Team bye weeks</h2>
-        <p className="mt-1 text-xs text-slate-500">Paste "TEAM week" pairs (one per line, e.g. <code>DET 5</code>). Applied to every player on that team; imports with a bye column also fill this in.</p>
+        <p className="mt-1 text-xs text-ink-faint">Paste "TEAM week" pairs (one per line, e.g. <code>DET 5</code>). Applied to every player on that team; imports with a bye column also fill this in.</p>
         <div className="mt-2 flex gap-2">
-          <textarea value={byePaste} onChange={(e) => setByePaste(e.target.value)} rows={3} placeholder={"DET 5\nKC 10"} className="w-48 rounded border border-slate-700 bg-slate-950 p-2 font-mono text-xs" />
+          <textarea value={byePaste} onChange={(e) => setByePaste(e.target.value)} rows={3} placeholder={"DET 5\nKC 10"} className="w-48 rounded border border-line bg-ground p-2 font-mono text-xs" />
           <button className={btn2} onClick={applyByePaste}>Apply</button>
         </div>
         {Object.keys(state.settings.byeWeeks).length > 0 && (
-          <div className="mt-2 flex flex-wrap gap-1 text-[11px] text-slate-400">
-            {Object.entries(state.settings.byeWeeks).map(([t, w]) => <span key={t} className="rounded bg-slate-800 px-1.5 py-0.5">{t} {w}</span>)}
+          <div className="mt-2 flex flex-wrap gap-1 text-[11px] text-ink-muted">
+            {Object.entries(state.settings.byeWeeks).map(([t, w]) => <span key={t} className="rounded bg-band px-1.5 py-0.5">{t} {w}</span>)}
           </div>
         )}
       </section>
 
       <section className={card}>
         <h2 className={h2}>News source templates</h2>
-        <p className="mt-1 text-xs text-slate-500">{"{name}"} and {"{team}"} are substituted per player. These render as link-outs on every player's news panel.</p>
+        <p className="mt-1 text-xs text-ink-faint">{"{name}"} and {"{team}"} are substituted per player. These render as link-outs on every player's news panel.</p>
         <div className="mt-2 space-y-1.5">
           {state.settings.newsTemplates.map((t, i) => (
             <div key={t.id} className="flex gap-2">
               <input value={t.name} onChange={(e) => setTemplate(i, { name: e.target.value })} className={`${input} w-40`} />
               <input value={t.url} onChange={(e) => setTemplate(i, { url: e.target.value })} className={`${input} flex-1 font-mono text-xs`} />
-              <button className="text-xs text-red-400" onClick={() => dispatch({ type: "SET_SETTINGS", patch: { newsTemplates: state.settings.newsTemplates.filter((_, j) => j !== i) } })}>✕</button>
+              <button className="text-xs text-behind" onClick={() => dispatch({ type: "SET_SETTINGS", patch: { newsTemplates: state.settings.newsTemplates.filter((_, j) => j !== i) } })}>✕</button>
             </div>
           ))}
         </div>
@@ -519,7 +530,7 @@ export function SettingsView() {
           <button className={btn2} onClick={() => dispatch({ type: "SET_SETTINGS", patch: { newsTemplates: DEFAULT_NEWS_TEMPLATES } })}>Restore defaults</button>
         </div>
         <div className="mt-4">
-          <div className="text-xs font-semibold text-slate-300">Local beat blogs per team</div>
+          <div className="text-xs font-semibold text-ink-muted">Local beat blogs per team</div>
           <div className="mt-1.5 flex items-center gap-2">
             <select value={beatTeam} onChange={(e) => setBeatTeam(e.target.value)} className={input}>
               {NFL_TEAMS.map((t) => <option key={t}>{t}</option>)}
@@ -531,17 +542,17 @@ export function SettingsView() {
               <div key={i} className="flex gap-2">
                 <input value={b.name} onChange={(e) => setBeats(beats.map((x, j) => j === i ? { ...x, name: e.target.value } : x))} className={`${input} w-40`} />
                 <input value={b.url} onChange={(e) => setBeats(beats.map((x, j) => j === i ? { ...x, url: e.target.value } : x))} className={`${input} flex-1 font-mono text-xs`} />
-                <button className="text-xs text-red-400" onClick={() => setBeats(beats.filter((_, j) => j !== i))}>✕</button>
+                <button className="text-xs text-behind" onClick={() => setBeats(beats.filter((_, j) => j !== i))}>✕</button>
               </div>
             ))}
           </div>
         </div>
         <div className="mt-4">
-          <label className="text-xs font-semibold text-slate-300">CORS proxy (optional)</label>
+          <label className="text-xs font-semibold text-ink-muted">CORS proxy (optional)</label>
           <input value={state.settings.corsProxy} onChange={(e) => dispatch({ type: "SET_SETTINGS", patch: { corsProxy: e.target.value } })}
             placeholder="https://your-proxy.example/?url={url}   (or a prefix the RSS URL is appended to)"
             className={`${input} mt-1 w-full font-mono text-xs`} />
-          <p className="mt-1 text-[11px] text-slate-500">If set, player news panels can fetch and render Google News RSS headlines inline. Empty = link-outs only.</p>
+          <p className="mt-1 text-[11px] text-ink-faint">If set, player news panels can fetch and render Google News RSS headlines inline. Empty = link-outs only.</p>
         </div>
       </section>
 
@@ -552,10 +563,10 @@ export function SettingsView() {
           <button className={btn2} onClick={() => importRef.current?.click()}>Import board JSON</button>
           <input ref={importRef} type="file" accept=".json" hidden onChange={(e) => e.target.files[0] && doImportBoard(e.target.files[0])} />
           <span className="grow" />
-          <button className="rounded border border-red-500/40 px-3 py-1.5 text-sm text-red-400 hover:bg-red-500/10"
+          <button className="rounded border border-behind/40 px-3 py-1.5 text-sm text-behind hover:bg-behind/10"
             onClick={() => confirm("Wipe everything — settings, sources, ranks, notes?") && dispatch({ type: "RESET" })}>Reset all data</button>
         </div>
-        <p className="mt-2 text-[11px] text-slate-500">Everything lives in this browser's storage — no server. Export before clearing site data.</p>
+        <p className="mt-2 text-[11px] text-ink-faint">Everything lives in this browser's storage — no server. Export before clearing site data.</p>
       </section>
     </div>
   );

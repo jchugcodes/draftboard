@@ -16,7 +16,7 @@ const TABS = [
 // The four position colours stacked as a mark. Reads as a tier stack, which is
 // what the app is about, and it is the one place colour appears unprovoked.
 const Mark = () => (
-  <span className="grid h-5 w-5 grid-rows-4 overflow-hidden">
+  <span className="grid h-5 w-5 grid-rows-4 overflow-hidden rounded-[3px]">
     <span className="bg-pos-QB" /><span className="bg-pos-RB" />
     <span className="bg-pos-WR" /><span className="bg-pos-TE" />
   </span>
@@ -56,9 +56,9 @@ function App() {
               return (
                 <button key={t.key} onClick={() => dispatch({ type: "SET_TAB", tab: t.key })}
                   aria-current={on ? "page" : undefined}
-                  className={`taper whitespace-nowrap px-2 py-1.5 text-[11px] font-semibold uppercase tracking-label transition-colors md:px-3 ${
+                  className={`lean whitespace-nowrap px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-label transition-colors md:px-3.5 ${
                     on ? "bg-ink text-ink-invert" : "text-ink-faint hover:bg-band hover:text-ink"}`}>
-                  {t.label}
+                  <span>{t.label}</span>
                   {t.key === "settings" && mergeCount > 0 && (
                     <span className="num ml-1.5 rounded-full bg-warn px-1.5 text-[10px] font-bold text-ink-invert">{mergeCount}</span>
                   )}
@@ -70,7 +70,7 @@ function App() {
             onClick={() => dispatch({ type: "SET_UI", patch: { theme: theme === "dark" ? "light" : "dark" } })}
             title={theme === "dark" ? "Switch to the light board" : "Switch to the dark board"}
             aria-label={theme === "dark" ? "Switch to the light board" : "Switch to the dark board"}
-            className="shrink-0 border border-line px-2 py-[7px] text-ink-muted transition-colors hover:border-ink hover:text-ink">
+            className="shrink-0 rounded-[--r-sm] border border-line px-2 py-[7px] text-ink-muted transition-colors hover:border-ink hover:text-ink">
             {theme === "dark" ? <Sun /> : <Moon />}
           </button>
           <span className="hidden shrink-0 text-[10px] uppercase tracking-label text-ink-ghost lg:block">half-PPR · offline-ready</span>

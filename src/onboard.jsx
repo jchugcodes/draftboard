@@ -37,7 +37,7 @@ export default function Onboard({ compact = false }) {
           whose look we did not choose. It is the app's own mark instead: the
           four position colours stacked, which is what a tier is. */}
       {!compact && (
-        <span aria-hidden className="mx-auto grid h-12 w-12 grid-rows-4 overflow-hidden">
+        <span aria-hidden className="mx-auto grid h-12 w-12 grid-rows-4 overflow-hidden rounded-[7px]">
           <span className="bg-pos-QB" /><span className="bg-pos-RB" />
           <span className="bg-pos-WR" /><span className="bg-pos-TE" />
         </span>
@@ -53,7 +53,7 @@ export default function Onboard({ compact = false }) {
 
       {!steps && (
         <button onClick={start} disabled={running}
-          className={`bg-ink px-5 py-2.5 text-[13px] font-semibold text-ink-invert transition-opacity hover:opacity-90 disabled:opacity-40 ${compact ? "" : "mt-6"}`}>
+          className={`rounded-[--r-sm] bg-ink px-5 py-2.5 text-[13px] font-semibold text-ink-invert transition-opacity hover:opacity-90 disabled:opacity-40 ${compact ? "" : "mt-6"}`}>
           {state.sources?.length ? "Refresh all data" : "Load everything"}
         </button>
       )}

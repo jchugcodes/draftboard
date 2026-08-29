@@ -11,7 +11,7 @@ const h2 = "label-lg text-ink";
 // Primary action is the ink block, not a coloured pill: on a white ground the
 // strongest thing available is solid black, and it keeps the accent reserved
 // for the one meaning it carries everywhere else — this is mine.
-const btn = "taper bg-ink px-4 py-2 text-[11px] font-semibold uppercase tracking-label text-ink-invert transition-opacity hover:opacity-80 disabled:opacity-30";
+const btn = "rounded-[--r-sm] bg-ink px-4 py-2 text-[11px] font-semibold text-ink-invert transition-opacity hover:opacity-90 disabled:opacity-40";
 const btn2 = "ctl px-3 py-2";
 const input = "border border-line bg-ground px-2 py-1 text-sm";
 

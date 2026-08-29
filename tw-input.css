@@ -91,6 +91,17 @@
 
   /* the reference's signature: a nav link whose sides taper inward */
   --taper: 3px;
+
+  /* Corner radii. Three steps and no more, so a button and the sheet it sits
+     on are obviously the same family at different sizes. */
+  --r-sm: 5px;   /* controls, chips, key caps */
+  --r-md: 8px;   /* control groups, menus, the shortcuts sheet */
+  --r-lg: 12px;  /* the board itself */
+
+  /* The lean. Racing numbers are set on a slant because the slant reads as
+     motion before you have read the number. 9 degrees is the angle where a
+     two-digit block still looks like a block rather than a rhombus. */
+  --lean: -9deg;
 }
 
 :root[data-theme="dark"] {
@@ -201,17 +212,20 @@
   }
   .label-lg { letter-spacing: 0.16em; font-size: 11px; }
 
-  /* The signature shape — sides drawn in by --taper, top edge full width. It
-     is barely perceptible per element and unmistakable once it repeats.
-     
-     It applies to FILLED blocks only, and that is a rule rather than a habit:
-     the clip cuts a triangle out of each bottom corner, and on a box whose edge
-     is a 1px border that means slicing the last few pixels off both side
-     borders. A tapered outline reads as an open bracket, not as a box. Nine
-     places were doing it — the rank pill, the source badges, half the buttons
-     in the player card. Fill it or leave it square. */
-  .taper { clip-path: polygon(0 0, 100% 0, calc(100% - var(--taper)) 100%, var(--taper) 100%); }
-  .taper-up { clip-path: polygon(var(--taper) 0, calc(100% - var(--taper)) 0, 100% 100%, 0 100%); }
+  /* The signature shape, replacing the taper.
+  
+     The taper clipped a triangle off each bottom corner, which gave the angle
+     but paid for it in four hard points per element and forbade any radius —
+     a clip-path cuts straight through a border-radius. The lean gets the same
+     motion out of a transform instead: the box tilts, the corners stay round,
+     and nothing is cut. Skew rotates the glyphs too, so the content is
+     counter-skewed back upright — which is why anything inside .lean has to be
+     an element rather than a bare text node. */
+  .lean {
+    border-radius: var(--r-sm);
+    transform: skewX(var(--lean));
+  }
+  .lean > * { display: inline-block; transform: skewX(calc(-1 * var(--lean))); }
 
   /* The measure. A board left to fill a 1900px window spreads fourteen columns
      so far apart that reading across one row becomes a head movement, and a
@@ -273,9 +287,9 @@
      and now the difference between a label and a control is legible at a
      glance rather than only by position. */
   .ctl {
-    @apply inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap border border-line
-           bg-panel px-2.5 py-1.5 text-[11px] font-medium leading-none
-           text-ink-muted transition-colors;
+    @apply inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-[--r-sm]
+           border border-line bg-panel px-2.5 py-1.5 text-[11px] font-medium
+           leading-none text-ink-muted transition-colors;
   }
   .ctl:hover:not(:disabled) { @apply border-ink text-ink; }
   .ctl:disabled { @apply cursor-not-allowed opacity-40; }
@@ -288,8 +302,8 @@
      button beside it share a baseline, but sentence case — you read what you
      typed, you don't scan it as signage. */
   .field {
-    @apply border border-line bg-panel px-2.5 py-1.5 text-[12px] text-ink
-           transition-colors placeholder:text-ink-ghost;
+    @apply rounded-[--r-sm] border border-line bg-panel px-2.5 py-1.5 text-[12px]
+           text-ink transition-colors placeholder:text-ink-ghost;
   }
   .field:hover { @apply border-line-strong; }
 
@@ -313,7 +327,7 @@
   /* A key, drawn as a key. Used for the / hint in search and every row of the
      shortcuts sheet, so a thing you press always looks the same. */
   kbd {
-    @apply border border-line bg-panel-raised px-1.5 py-0.5 text-[11px] font-bold text-ink;
+    @apply rounded-[--r-sm] border border-line bg-panel-raised px-1.5 py-0.5 text-[11px] font-bold text-ink;
     font-family: "Roboto Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   }
 
@@ -321,7 +335,7 @@
      chosen segment in the ink block the app already uses for "this one is
      active". Position filters and the density switch are both this shape,
      which is what makes them read as the same kind of question. */
-  .seg { @apply inline-flex shrink-0 divide-x divide-line overflow-hidden border border-line bg-panel; }
+  .seg { @apply inline-flex shrink-0 divide-x divide-line overflow-hidden rounded-[--r-sm] border border-line bg-panel; }
   .seg > * {
     @apply px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-label
            text-ink-faint transition-colors;
@@ -332,7 +346,7 @@
   /* A named cluster of related tools, so "the tier controls" is one object in
      the toolbar rather than three loose buttons that happen to sit together. */
   .toolgroup {
-    @apply inline-flex shrink-0 items-center gap-1 border border-line
+    @apply inline-flex shrink-0 items-center gap-1 rounded-[--r-md] border border-line
            bg-panel-raised py-1 pl-2 pr-1;
   }
 

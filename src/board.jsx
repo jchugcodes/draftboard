@@ -22,6 +22,29 @@ function sourceOpinions(sources, id) {
 }
 
 
+// Tiers, drawn as depth. A cliff in value is the most important thing on the
+// board and it was being said by a thin grey strip, so it is said by size
+// instead: tier one is set largest and every tier after it is a step smaller,
+// which is the only depth cue the eye needs — a thing that is bigger is nearer.
+// It costs less height than the old uniform band rather than more, because only
+// the top tier is large and the rest shrink past where the band used to sit.
+//
+// Three things step together and none of them is a shadow: the block gets
+// smaller, it stands less proud of its band, and the rule above the band gets
+// thinner. Near tiers therefore read as heavier objects sitting closer to you,
+// far ones as marks lying flat on the page.
+//
+// Five steps and then a floor: past tier six the differences stop being legible
+// and another step would only make the text small.
+const TIER_DEPTH = [
+  { block: "px-3.5 py-2 text-[17px] -my-2",     name: "text-[16px]",   band: "py-1",   ink: 1,    rule: 3 },
+  { block: "px-3 py-1.5 text-[14px] -my-1.5",   name: "text-[14px]",   band: "py-1",   ink: 0.9,  rule: 2 },
+  { block: "px-2.5 py-1 text-[12px] -my-1",     name: "text-[12.5px]", band: "py-0.5", ink: 0.8,  rule: 1 },
+  { block: "px-2 py-0.5 text-[10.5px] -my-0.5", name: "text-[11px]",   band: "py-0.5", ink: 0.7,  rule: 1 },
+  { block: "px-2 py-0.5 text-[9.5px]",          name: "text-[10px]",   band: "py-0",   ink: 0.62, rule: 1 },
+];
+const tierDepth = (tier) => TIER_DEPTH[Math.min(tier - 1, TIER_DEPTH.length - 1)];
+
 function tierOfIndex(i, breaks) {
   let t = 1;
   for (const b of breaks) if (i >= b) t++;
@@ -61,14 +84,14 @@ const ConsPos = ({ my, theirs }) => {
   const title = move === 0 ? "Consensus would rank him exactly here"
     : move < 0 ? `Consensus would rank him #${theirs} — ${-move} spots later than you have him`
     : `Consensus would rank him #${theirs} — ${move} spots earlier than you have him`;
-  return <span title={title} className={`num border px-1.5 py-px text-[10px] font-semibold ${cls}`}>c{theirs}</span>;
+  return <span title={title} className={`num rounded-[--r-sm] border px-1.5 py-px text-[10px] font-semibold ${cls}`}>c{theirs}</span>;
 };
 
 const InjuryBadge = ({ p }) => {
   const inj = p.sleeper?.injury;
   if (!inj) return null;
   const short = { Questionable: "Q", Doubtful: "D", Out: "O", IR: "IR", PUP: "PUP", Sus: "SUS" }[inj] || inj.slice(0, 3);
-  return <span className="taper ml-1.5 bg-behind px-1 text-[9px] font-bold uppercase tracking-label text-ink-invert">{short}</span>;
+  return <span className="lean ml-1.5 bg-behind px-1.5 text-[9px] font-bold uppercase tracking-label text-ink-invert"><span>{short}</span></span>;
 };
 
 const TagDots = ({ p }) => (
@@ -409,7 +432,7 @@ function FreshnessStrip() {
 
   return (
     <div className="flex items-center gap-2 px-2 py-1 text-[11px] md:px-3">
-      <span className={`shrink-0 border px-2 py-0.5 text-[10px] font-bold uppercase tracking-label ${tone}`}>{pill}</span>
+      <span className={`shrink-0 rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-label ${tone}`}>{pill}</span>
       <span className="min-w-0 truncate text-ink-muted">
         Consensus as of <span className="text-ink">{new Date(fresh.newest.date).toLocaleDateString()}</span>
         <span className="hidden text-ink-ghost sm:inline"> · {fresh.newest.name} · {state.sources.length} source{state.sources.length > 1 ? "s" : ""}</span>
@@ -454,7 +477,7 @@ function OverflowMenu({ onShortcuts, onReset, onClearFilters, filtered }) {
         className={`ctl px-2 py-[7px] ${open ? "border-ink text-ink" : ""}`}><Ellipsis /></button>
       {open && (
         <div role="menu"
-          className="animate-rise absolute right-0 top-full z-40 mt-1 w-60 border border-line bg-panel py-1 shadow-lg shadow-black/10">
+          className="animate-rise absolute right-0 top-full z-40 mt-1 w-60 rounded-[--r-md] border border-line bg-panel py-1 shadow-lg shadow-black/10">
           <button role="menuitem" className={item} onClick={() => { setOpen(false); onShortcuts(); }}>
             Keyboard shortcuts <span className="num ml-1 text-ink-ghost">?</span>
           </button>
@@ -501,8 +524,8 @@ function ShortcutsModal({ onClose }) {
     <div className="animate-fade fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-6"
       onClick={onClose} role="dialog" aria-modal="true" aria-label="Keyboard shortcuts">
       <div onClick={(e) => e.stopPropagation()}
-        className="animate-rise max-h-[85vh] w-full max-w-2xl overflow-y-auto border border-line bg-ground shadow-2xl sm:max-w-3xl">
-        <div className="sticky top-0 flex items-center justify-between border-b border-line bg-ground px-4 py-3">
+        className="animate-rise max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-t-[--r-lg] border border-line bg-ground shadow-2xl sm:max-w-3xl sm:rounded-[--r-lg]">
+        <div className="sticky top-0 flex items-center justify-between rounded-t-[--r-lg] border-b border-line bg-ground px-4 py-3">
           <h2 className="label-lg text-ink">Keyboard</h2>
           <button onClick={onClose} className="ctl ctl-quiet" aria-label="Close">Close</button>
         </div>
@@ -568,7 +591,7 @@ function EmptyBoard({ query, posFilter, tagFilter, total, onClear }) {
       </p>
       <div className="mt-4 flex flex-wrap justify-center gap-1.5">
         {active.map(([label, value]) => (
-          <span key={label} className="inline-flex items-center gap-1.5 border border-line bg-panel px-2.5 py-1.5">
+          <span key={label} className="inline-flex items-center gap-1.5 rounded-[--r-sm] border border-line bg-panel px-2.5 py-1.5">
             <span className="label text-ink-ghost">{label}</span>
             <span className="text-[12px] font-semibold text-ink">{value}</span>
           </span>
@@ -966,7 +989,7 @@ export default function Board() {
           flex-wrap — on a phone it stretched the command bar into one
           unwrapped line running off the side of the screen. Below md there is
           no wide table to hug, so the sheet is simply full width. */}
-      <div className={`w-full min-w-0 flex-1 border border-line bg-panel shadow-[0_1px_2px_rgb(0_0_0/0.04),0_8px_24px_-12px_rgb(0_0_0/0.10)] ${
+      <div className={`w-full min-w-0 flex-1 border border-line bg-panel rounded-[--r-lg] shadow-[0_1px_2px_rgb(0_0_0/0.04),0_8px_24px_-12px_rgb(0_0_0/0.10)] ${
         compact ? "" : "md:w-max md:min-w-full md:flex-none"}`}>
         {/* ---------- command bar ----------
             Three bands, in the order you ask the questions: how fresh is this,
@@ -974,7 +997,7 @@ export default function Board() {
             to be one wrapping row of eighteen identically-drawn controls, which
             at laptop widths wrapped to four lines of sticky chrome and put a
             "replace my whole order" button next to the WR filter. */}
-        <div ref={toolbarRef} className="sticky top-0 z-20 border-b border-line bg-panel/95 backdrop-blur">
+        <div ref={toolbarRef} className="sticky top-0 z-20 rounded-t-[--r-lg] border-b border-line bg-panel/95 backdrop-blur">
           <FreshnessStrip />
           {staleSources.length > 0 && (
             <div className="flex items-center gap-2 border-t border-warn/30 bg-warn/10 px-2 py-1 text-[11px] text-warn md:px-3">
@@ -1174,6 +1197,7 @@ export default function Board() {
                 const header = showTiers && tier !== lastTier;
                 if (header) lastTier = tier;
                 const breakIdx = header ? scopeBreaks.find((b) => tierOfIndex(b, scopeBreaks) === tier) : undefined;
+                const d = tierDepth(tier);
                 const ps = posStyle(r.p.pos);
                 const sel = selected === r.id;
                 return (
@@ -1186,21 +1210,23 @@ export default function Board() {
                         {/* A tier break is a cliff in value, so it reads as a
                             hard rule with the tier number set in the ink block
                             — the same weight the app gives an active tab. */}
-                        <td colSpan={colCount} style={{ top: toolbarH + theadH }}
-                          className="sticky z-[9] border-y border-line bg-band px-2 py-2">
+                        <td colSpan={colCount}
+                          className={`sticky z-[9] border-y border-line bg-band px-2 ${d.band}`}
+                          style={{ top: toolbarH + theadH, borderTopWidth: d.rule }}>
                           <div className="flex items-center gap-2.5">
-                            {/* The tier number is the loudest mark on the board
-                                on purpose. Every rule under every row is gone,
-                                so this is what tells you where one group of
-                                players ends and the next begins. */}
-                            <span className="num taper shrink-0 bg-ink px-2.5 py-1 text-[12px] font-bold tracking-[0.06em] text-ink-invert">
-                              {String(tier).padStart(2, "0")}
+                            {/* -my-1 lets the block stand proud of its own band.
+                                A mark that breaks the edge of the thing holding
+                                it is the cheapest depth cue there is, and it
+                                costs no height because the band closes around it. */}
+                            <span style={{ opacity: d.ink }}
+                              className={`num lean shrink-0 bg-ink font-bold tracking-[0.06em] text-ink-invert ${d.block}`}>
+                              <span>{String(tier).padStart(2, "0")}</span>
                             </span>
                             <input value={tierNames[tier] ?? ""} placeholder="Name this tier"
                               draggable={false} onDragStart={(e) => e.preventDefault()}
                               onClick={(e) => e.stopPropagation()}
                               onChange={(e) => dispatch({ type: "SET_TIER_NAME", scope: tierScope, tier, name: e.target.value })}
-                              className="w-56 border border-transparent bg-transparent px-1.5 py-0.5 text-[13px] font-semibold normal-case tracking-[-0.01em] text-ink placeholder:font-normal placeholder:text-ink-ghost hover:border-line focus:border-accent focus:bg-panel focus:outline-none" />
+                              className={`w-56 rounded-[--r-sm] border border-transparent bg-transparent px-1.5 py-0.5 font-bold normal-case tracking-[-0.015em] text-ink placeholder:font-normal placeholder:text-ink-ghost hover:border-line focus:border-accent focus:bg-panel focus:outline-none ${d.name}`} />
                             {breakIdx !== undefined && (
                               <button draggable={false} title="Pull this divider out (merges into the tier above)"
                                 onClick={(e) => { e.stopPropagation(); dispatch({ type: "TOGGLE_TIER_BREAK", scope: tierScope, index: breakIdx }); }}
@@ -1228,7 +1254,7 @@ export default function Board() {
                           everything else stays plain. */}
                       <td className={`whitespace-nowrap px-2 ${rowPad}`}>
                         <span className="inline-flex items-center gap-1.5">
-                          <span className="num taper bg-ink px-2 py-0.5 text-[13px] font-bold text-ink-invert">{String(r.myRank).padStart(2, "0")}</span>
+                          <span className="num lean bg-ink px-2 py-1 text-[13px] font-bold text-ink-invert"><span>{String(r.myRank).padStart(2, "0")}</span></span>
                           <ConsGap myRank={r.myRank} consensus={r.consensus} />
                           {showOverlay && consensusPos?.get(r.id) != null && (
                             <ConsPos my={myPos.get(r.id)} theirs={consensusPos.get(r.id)} />
@@ -1251,7 +1277,7 @@ export default function Board() {
                           line. nowrap keeps it on one now that it fits. */}
                       <td className={`whitespace-nowrap px-2 ${rowPad}`}>
                         <div className="flex items-center">
-                          <span className={`mr-2 h-5 w-[3px] shrink-0 ${ps.rail}`} />
+                          <span className={`mr-2 h-5 w-[3px] shrink-0 rounded-full ${ps.rail}`} />
                           <span className="text-[14px] font-semibold leading-none tracking-[-0.01em]">{r.p.name}</span>
                           <span className="ml-2 text-[11px] text-ink-faint">{r.p.team || "FA"} · {r.p.bye ?? "?"}</span>
                           <InjuryBadge p={r.p} /><TagDots p={r.p} />
@@ -1264,7 +1290,7 @@ export default function Board() {
                       ))}
                       <td className={`whitespace-nowrap px-2 ${rowPad}`}>
                         <span className="inline-flex items-center gap-2">
-                          <span className="num border border-line bg-panel-raised px-2 py-0.5 text-[13px] font-semibold text-ink">{fmt(r.consensus, 1)}</span>
+                          <span className="num rounded-[--r-sm] border border-line bg-panel-raised px-2 py-0.5 text-[13px] font-semibold text-ink">{fmt(r.consensus, 1)}</span>
                           <RankBar compact myRank={r.myRank} consensus={r.consensus} sources={opinionsFor(r)} />
                         </span>
                       </td>
@@ -1310,18 +1336,21 @@ export default function Board() {
             const header = showTiers && tier !== lastTier;
             if (header) lastTier = tier;
             const breakIdx = header ? scopeBreaks.find((b) => tierOfIndex(b, scopeBreaks) === tier) : undefined;
+            const d = tierDepth(tier);
             const ps = posStyle(r.p.pos);
             return (
               <React.Fragment key={r.id}>
                 {header && (
-                  <div className="sticky z-10 border-y border-line bg-band px-3 py-2" style={{ top: toolbarH }}>
+                  <div className={`sticky z-10 border-y border-line bg-band px-3 ${d.band}`}
+                    style={{ top: toolbarH, borderTopWidth: d.rule }}>
                     <div className="flex items-center justify-between gap-2">
                       <span className="flex min-w-0 items-center gap-2">
-                        <span className="num taper shrink-0 bg-ink px-2.5 py-1 text-[12px] font-bold tracking-[0.06em] text-ink-invert">
-                          {String(tier).padStart(2, "0")}
+                        <span style={{ opacity: d.ink }}
+                          className={`num lean shrink-0 bg-ink font-bold tracking-[0.06em] text-ink-invert ${d.block}`}>
+                          <span>{String(tier).padStart(2, "0")}</span>
                         </span>
                         {tierNames[tier]
-                          ? <span className="truncate text-[13px] font-semibold text-ink">{tierNames[tier]}</span>
+                          ? <span className={`truncate font-bold tracking-[-0.015em] text-ink ${d.name}`}>{tierNames[tier]}</span>
                           : <span className="label shrink-0 text-ink-ghost">Tier</span>}
                       </span>
                       {breakIdx !== undefined && (
@@ -1343,11 +1372,11 @@ export default function Board() {
                   onClick={() => toggleExpand(r.id)}
                   className={`board-row flex items-stretch gap-2.5 border-b border-line/40 pl-3 transition-colors active:bg-band/60 ${
                     selected === r.id ? "bg-accent/[0.07]" : ""}`}>
-                  <span className={`my-2 w-[3px] shrink-0 ${ps.rail}`} />
+                  <span className={`my-2 w-[3px] shrink-0 rounded-full ${ps.rail}`} />
                   <div className="min-w-0 flex-1 py-2.5">
                     <div className="flex items-center gap-1.5">
-                      <span className="num taper shrink-0 bg-ink px-1.5 py-0.5 text-[12px] font-bold text-ink-invert">
-                        {String(r.myRank).padStart(2, "0")}
+                      <span className="num lean shrink-0 bg-ink px-2 py-1 text-[12px] font-bold text-ink-invert">
+                        <span>{String(r.myRank).padStart(2, "0")}</span>
                       </span>
                       <span className="truncate text-[15px] font-semibold leading-tight">{r.p.name}</span>
                       <InjuryBadge p={r.p} /><TagDots p={r.p} />
@@ -1356,7 +1385,7 @@ export default function Board() {
                       <span className={`shrink-0 font-semibold ${ps.text}`}>{r.p.pos}{r.posRank}</span>
                       <span className="shrink-0">{r.p.team || "FA"} · bye {r.p.bye ?? "?"}</span>
                       <span className="flex shrink-0 items-center gap-1.5">
-                        <span className="num border border-line px-1.5 py-0.5 font-semibold text-ink">{fmt(r.consensus, 0)}</span>
+                        <span className="num rounded-[--r-sm] border border-line px-1.5 py-0.5 font-semibold text-ink">{fmt(r.consensus, 0)}</span>
                         <RankBar compact width={44} myRank={r.myRank} consensus={r.consensus} sources={opinionsFor(r)} />
                         <ConsGap myRank={r.myRank} consensus={r.consensus} />
                       </span>

@@ -58,10 +58,28 @@ case at 11px is *language* — anything that is a phrase you read before acting 
 it, which is every button. A toolbar where eleven controls all shout has no
 emphasis left to give the one that matters.
 
-**The taper is for filled blocks.** The signature shape clips a triangle out of
-each bottom corner, so on a box whose edge is a 1px border it slices the last
-few pixels off both sides and the box reads as an open bracket. Fill it or leave
-it square.
+**The lean, not the taper.** The old signature clipped a triangle off each
+bottom corner. It gave the angle but paid for it in four hard points per element
+and forbade any radius, because a clip-path cuts straight through a
+border-radius. `.lean` gets the same motion from a transform instead: the box
+tilts nine degrees, the corners stay round, nothing is cut — a racing number,
+which is set on a slant because the slant reads as motion before you have read
+the number. Skew rotates glyphs too, so anything inside `.lean` is
+counter-skewed back upright and therefore has to be an element, not a bare text
+node. Corners run on three radii and no more (`--r-sm/md/lg`), so a button and
+the sheet it sits on are the same family at different sizes.
+
+**Tiers are drawn as depth, and depth is size.** A cliff in value is the most
+important thing on the board and it was being said by a thin grey strip. Three
+things now step together down `TIER_DEPTH`, and none of them is a shadow or a
+gradient: the tier block gets smaller, it stands less proud of its own band, and
+the rule above the band gets thinner. Near tiers read as heavier objects sitting
+closer to you; far ones as marks lying flat on the page. It costs *less* height
+than the old uniform band, not more — only the top tier is large, the rest shrink
+past where the band used to sit, and the block's negative margin lets it break
+the band's edge without adding to it. Five steps and then a floor: past tier six
+the differences stop being legible and another step would only make the text
+small.
 
 **Icons are drawn, not borrowed.** Eighteen symbols used to be Unicode
 characters set in Montserrat — `✕ ⋯ ⠿ ⚠ ✎ ⛓ ☾ ↕` — and a text glyph is drawn to

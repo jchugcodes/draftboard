@@ -96,6 +96,28 @@ if (!overlaid.includes("Justin Jefferson") || !tierMarks().length) {
 const badges = [...window.document.querySelectorAll("span[title]")].filter((n) => /Consensus would rank him/.test(n.getAttribute("title")));
 if (!badges.length) { console.log("overlay rendered no consensus-position badges"); fails++; }
 
+// The tier band pins beneath the sticky column head, which is a measured offset
+// written as an inline top. jsdom does no layout, so this cannot check where it
+// lands — but it can catch the offset going missing, which is exactly what a
+// second style attribute on the same element did once.
+const tierCells = [...window.document.querySelectorAll("td[class*=sticky]")];
+if (!tierCells.length) { console.log("tier band is not sticky at all"); fails++; }
+else if (!tierCells.every((td) => td.style.top !== "")) {
+  // jsdom does no layout, so the measured offset legitimately computes to 0px
+  // here. What is being checked is that the property is set at all — when a
+  // second style attribute clobbered the first, it came back as "".
+  console.log("tier band lost its sticky offset:", tierCells.map((t) => JSON.stringify(t.style.top))); fails++;
+}
+// Depth is drawn with size, so the bands must not all be the same size.
+const tierBlockSizes = new Set(
+  [...window.document.querySelectorAll("span[class*=lean][class*=bg-ink]")]
+    .filter((n) => /^\d\d$/.test(n.textContent.trim()))
+    .map((n) => (n.className.match(/text-\[[\d.]+px\]/) || [""])[0])
+);
+if (tierBlockSizes.size < 2) {
+  console.log("tier blocks are all one size — depth is not being drawn:", [...tierBlockSizes]); fails++;
+}
+
 // ---- the redesigned command bar -------------------------------------------
 // Turn the overlay back off so the rest of these run against a plain board.
 click("Consensus overlay");

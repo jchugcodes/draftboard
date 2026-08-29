@@ -4,6 +4,7 @@ import { StoreProvider, useStore } from "./store.jsx";
 import Board from "./board.jsx";
 import { DataView, ByesView, VacatedView, HistoryView, SettingsView } from "./views.jsx";
 import CompareView from "./compare.jsx";
+import { Sun, Moon } from "./icons.jsx";
 
 const TABS = [
   { key: "board", label: "Board" },
@@ -69,8 +70,8 @@ function App() {
             onClick={() => dispatch({ type: "SET_UI", patch: { theme: theme === "dark" ? "light" : "dark" } })}
             title={theme === "dark" ? "Switch to the light board" : "Switch to the dark board"}
             aria-label={theme === "dark" ? "Switch to the light board" : "Switch to the dark board"}
-            className="taper shrink-0 border border-line px-2 py-1.5 text-[11px] text-ink-muted transition-colors hover:border-ink hover:text-ink">
-            {theme === "dark" ? "☀" : "☾"}
+            className="shrink-0 border border-line px-2 py-[7px] text-ink-muted transition-colors hover:border-ink hover:text-ink">
+            {theme === "dark" ? <Sun /> : <Moon />}
           </button>
           <span className="hidden shrink-0 text-[10px] uppercase tracking-label text-ink-ghost lg:block">half-PPR · offline-ready</span>
         </div>

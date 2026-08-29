@@ -140,10 +140,39 @@
   }
 
   input[type=range] { height: 1rem; }
+
+  /* Motion, sparingly. A board you are reading numbers off is not the place
+     for choreography, so the only things that move are the ones that arrive:
+     a menu, a sheet, the spinner on a fetch that is genuinely running. 120ms
+     and a 4px rise is enough to say "this came from that button" and short
+     enough that you never wait for it. The blanket rule below still wins for
+     anyone who has asked their system for less. */
+  @keyframes rise { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+  @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes spin-slow { to { transform: rotate(360deg); } }
+  .animate-rise { animation: rise .12s cubic-bezier(.2, .7, .3, 1) both; }
+  .animate-fade { animation: fade .12s linear both; }
+  .animate-spin-slow { animation: spin-slow 1.1s linear infinite; }
+
   @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 
   ::selection { background: rgb(var(--accent)); color: rgb(var(--ink-invert)); }
   :focus-visible { outline: 2px solid rgb(var(--focus)); outline-offset: 2px; }
+
+  /* The scrollbar is the one piece of chrome that sits inside our layout and is
+     drawn by someone else. On a board that is mostly one long scroll it is on
+     screen more than any button, so it gets the token palette too: a hairline
+     of --line-strong on the ground, no arrows, no chunk. */
+  * { scrollbar-width: thin; scrollbar-color: rgb(var(--line-strong)) transparent; }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    background-color: rgb(var(--line-strong));
+    border: 3px solid rgb(var(--ground));
+    border-radius: 999px;
+  }
+  ::-webkit-scrollbar-thumb:hover { background-color: rgb(var(--ink-ghost)); }
+  ::-webkit-scrollbar-corner { background: transparent; }
 }
 
 @layer components {
@@ -160,7 +189,14 @@
   .label-lg { letter-spacing: 0.16em; font-size: 11px; }
 
   /* The signature shape — sides drawn in by --taper, top edge full width. It
-     is barely perceptible per element and unmistakable once it repeats. */
+     is barely perceptible per element and unmistakable once it repeats.
+     
+     It applies to FILLED blocks only, and that is a rule rather than a habit:
+     the clip cuts a triangle out of each bottom corner, and on a box whose edge
+     is a 1px border that means slicing the last few pixels off both side
+     borders. A tapered outline reads as an open bracket, not as a box. Nine
+     places were doing it — the rank pill, the source badges, half the buttons
+     in the player card. Fill it or leave it square. */
   .taper { clip-path: polygon(0 0, 100% 0, calc(100% - var(--taper)) 100%, var(--taper) 100%); }
   .taper-up { clip-path: polygon(var(--taper) 0, calc(100% - var(--taper)) 0, 100% 100%, 0 100%); }
 
@@ -201,9 +237,23 @@
    menu, a close ✕ — and it only grows a border on hover.
 --------------------------------------------------------------------------- */
 @layer components {
+  /* Capitalization is a rule here, not a mood.
+  
+     UPPERCASE, TRACKED, 10px — signage. Text you locate and never read: a
+     column head, a group label, TIER. Tracking is what makes it scan as a sign
+     instead of as a word, and it only works because the strings are one or two
+     words long.
+  
+     Sentence case, 11px — language. Anything that is a phrase you actually
+     read before acting on it: every button. "Consensus overlay" and "Back to
+     my order" were set as signage too, and a toolbar where eleven controls all
+     shout is a toolbar with no emphasis left to give the one that matters.
+     Buttons went back to sentence case; the labels above them kept the caps,
+     and now the difference between a label and a control is legible at a
+     glance rather than only by position. */
   .ctl {
     @apply inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap border border-line
-           bg-panel px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-label
+           bg-panel px-2.5 py-1.5 text-[11px] font-medium leading-none
            text-ink-muted transition-colors;
   }
   .ctl:hover:not(:disabled) { @apply border-ink text-ink; }
@@ -221,6 +271,30 @@
            transition-colors placeholder:text-ink-ghost;
   }
   .field:hover { @apply border-line-strong; }
+
+  /* A native select was the one control in the app still wearing the operating
+     system's clothes — a different arrow, a different corner radius and a
+     different height on every machine. Same box as everything else now, with
+     the caret drawn from our own icon set as a background image so it inherits
+     the ink token in both themes. */
+  select.field {
+    appearance: none;
+    padding-right: 1.6rem;
+    background-repeat: no-repeat;
+    background-position: right 0.45rem center;
+    background-size: 11px 11px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%2371717a' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3.5 6 8 10.5 12.5 6'/%3E%3C/svg%3E");
+  }
+  :root[data-theme="dark"] select.field {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23a1a1aa' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3.5 6 8 10.5 12.5 6'/%3E%3C/svg%3E");
+  }
+
+  /* A key, drawn as a key. Used for the / hint in search and every row of the
+     shortcuts sheet, so a thing you press always looks the same. */
+  kbd {
+    @apply border border-line bg-panel-raised px-1.5 py-0.5 text-[11px] font-bold text-ink;
+    font-family: "Roboto Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
 
   /* A segmented control: one border around the set, hairlines between, and the
      chosen segment in the ink block the app already uses for "this one is

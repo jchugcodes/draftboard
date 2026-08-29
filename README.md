@@ -36,6 +36,7 @@ timestamp locally), so installed clients pick up every deploy on their own —
 ## Layout
 
 - `src/` — app source. Entry is `src/main.jsx`.
+  - `icons.jsx` — every symbol in the app, on one grid. See *Design rules*.
   - `useDataSync.js` — every way the app pulls data, in one hook, so the Board's
     Refresh and Setup's per-source buttons drive the same code.
   - `rankbar.jsx` — where each source has a player on one shared scale. Renders
@@ -45,6 +46,34 @@ timestamp locally), so installed clients pick up every deploy on their own —
   Its paths are dist-relative (`./app.js`), so never serve `public/` directly.
 - `dist/` — build output. Committed.
 - `gen-icons.mjs` — regenerates `public/icons/*.png`. Run manually.
+
+## Design rules
+
+Three rules, written down because each one was being broken in eight or nine
+places before it was stated.
+
+**Capitalization says what a thing is.** Uppercase, tracked, 10px is *signage* —
+text you locate and never read: a column head, a group label, `TIER`. Sentence
+case at 11px is *language* — anything that is a phrase you read before acting on
+it, which is every button. A toolbar where eleven controls all shout has no
+emphasis left to give the one that matters.
+
+**The taper is for filled blocks.** The signature shape clips a triangle out of
+each bottom corner, so on a box whose edge is a 1px border it slices the last
+few pixels off both sides and the box reads as an open bracket. Fill it or leave
+it square.
+
+**Icons are drawn, not borrowed.** Eighteen symbols used to be Unicode
+characters set in Montserrat — `✕ ⋯ ⠿ ⚠ ✎ ⛓ ☾ ↕` — and a text glyph is drawn to
+a type designer's brief, not ours: different optical weights, different
+baselines, different shapes per platform. `src/icons.jsx` is one 16-unit grid,
+1.5 stroke, round caps, `currentColor`. Two are filled rather than stroked, and
+deliberately: `Caret` and `Dot` are data, not chrome, and need the same weight
+as the number beside them.
+
+Numbers are right-aligned and their headers with them, so the units sit under
+the units — which is the only reason a mono face was worth loading. Names, ranks
+and `Cons` stay left; they are labels and chips, not quantities.
 
 ## Using it
 

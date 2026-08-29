@@ -115,7 +115,7 @@ export default function PlayerCard({ row, sources, onOpenDetail, onClose }) {
     <div className="border-y border-ink bg-ground-sunken px-3 py-4 md:px-4">
       {/* identity */}
       <div className="flex flex-wrap items-start gap-3">
-        <span className={`taper mt-0.5 shrink-0 border px-2 py-1 text-[11px] font-bold uppercase tracking-label ${ps.chip}`}>
+        <span className={`mt-0.5 shrink-0 border px-2 py-1 text-[11px] font-bold uppercase tracking-label ${ps.chip}`}>
           {p.pos}{row.posRank}
         </span>
         <div className="min-w-0 flex-1">
@@ -214,18 +214,18 @@ export default function PlayerCard({ row, sources, onOpenDetail, onClose }) {
       <div className="mt-4 flex flex-wrap items-center gap-1.5">
         {TAGS.map((t) => (
           <button key={t.key} onClick={() => dispatch({ type: "TOGGLE_TAG", id: p.id, tag: t.key })}
-            className={`taper border px-2 py-1 text-[10px] font-semibold uppercase tracking-label transition-colors ${
+            className={`border px-2 py-1 text-[10px] font-semibold uppercase tracking-label transition-colors ${
               p.tags.includes(t.key) ? t.cls : "border-line text-ink-faint hover:border-ink hover:text-ink"}`}>
             {t.label}
           </button>
         ))}
         <span className="grow" />
         <button onClick={() => onOpenDetail(p.id)}
-          className="taper border border-line px-2.5 py-1 text-[10px] font-semibold uppercase tracking-label text-ink-muted transition-colors hover:border-ink hover:text-ink">
+          className="border border-line px-2.5 py-1 text-[10px] font-semibold uppercase tracking-label text-ink-muted transition-colors hover:border-ink hover:text-ink">
           Situation, stats &amp; news
         </button>
         <button onClick={onClose} aria-label="Collapse"
-          className="taper border border-line px-2.5 py-1 text-[10px] font-semibold uppercase tracking-label text-ink-faint transition-colors hover:border-ink hover:text-ink">
+          className="border border-line px-2.5 py-1 text-[10px] font-semibold uppercase tracking-label text-ink-faint transition-colors hover:border-ink hover:text-ink">
           Close
         </button>
       </div>

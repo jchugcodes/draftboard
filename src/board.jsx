@@ -7,6 +7,7 @@ import { useDataSync } from "./useDataSync.js";
 import { newsRSSUrl, fetchRSSHeadlines } from "./fetchers.js";
 import Onboard from "./onboard.jsx";
 import PlayerCard from "./playercard.jsx";
+import { Search, Close, Chevron, Sort, Ellipsis, Grip, Refresh, Warning, Link, Pencil, External, Caret, Dot } from "./icons.jsx";
 
 const posStyle = (pos) => POS_STYLE[pos] || POS_STYLE.DST;
 
@@ -86,13 +87,13 @@ function Trend({ move, p, trending }) {
     const d = move.delta;
     const feeds = `${move.feeds} feed${move.feeds > 1 ? "s" : ""}`;
     if (Math.abs(d) < 1) {
-      return <span title={`Flat across ${feeds} over ${move.days}d`} className="text-ink-ghost">·</span>;
+      return <span title={`Flat across ${feeds} over ${move.days}d`} className="text-ink-ghost"><Dot size={5} /></span>;
     }
     const up = d > 0;
     return (
       <span title={`${up ? "Being drafted earlier" : "Sliding"} by ${fmt(Math.abs(d), 1)} spots over ${move.days}d · ${feeds}`}
         className={`num text-[11px] font-bold ${up ? "text-ahead" : "text-behind"}`}>
-        {up ? "▲" : "▼"}{fmt(Math.abs(d), 0)}
+        <Caret dir={up ? "up" : "down"} size={8} />{fmt(Math.abs(d), 0)}
       </span>
     );
   }
@@ -100,12 +101,12 @@ function Trend({ move, p, trending }) {
   if (!sid) return <span className="text-ink-ghost">–</span>;
   const add = trending.adds.find((x) => x.player_id === sid);
   const drop = trending.drops.find((x) => x.player_id === sid);
-  if (!add && !drop) return <span className="text-ink-ghost">·</span>;
+  if (!add && !drop) return <span className="text-ink-ghost"><Dot size={5} /></span>;
   return (
     <span className="num text-[11px]" title="Sleeper adds/drops over 48h — waiver interest, not draft movement">
-      {add && <span className="text-ahead">▲{(add.count / 1000).toFixed(0)}k</span>}
+      {add && <span className="text-ahead"><Caret dir="up" size={8} />{(add.count / 1000).toFixed(0)}k</span>}
       {add && drop && " "}
-      {drop && <span className="text-behind">▼{(drop.count / 1000).toFixed(0)}k</span>}
+      {drop && <span className="text-behind"><Caret dir="down" size={8} />{(drop.count / 1000).toFixed(0)}k</span>}
     </span>
   );
 }
@@ -137,7 +138,7 @@ function NewsPanel({ p }) {
         {links.map((l) => (
           <a key={l.url} href={l.url} target="_blank" rel="noopener noreferrer"
             className="rounded border border-line bg-band/60 px-2 py-1 text-xs text-accent hover:border-accent">
-            {l.name} ↗
+            {l.name} <External size={11} />
           </a>
         ))}
       </div>
@@ -329,7 +330,7 @@ function DetailPanel({ id, onClose }) {
             {p.handcuffOf && state.players[p.handcuffOf] && <> · handcuff of {state.players[p.handcuffOf].name}</>}
           </div>
         </div>
-        <button onClick={onClose} className="rounded p-1.5 text-ink-muted hover:bg-band" aria-label="Close">✕</button>
+        <button onClick={onClose} className="rounded p-1.5 text-ink-muted hover:bg-band" aria-label="Close"><Close /></button>
       </div>
       <div className="space-y-4 p-3">
         <div className="flex flex-wrap gap-1.5">
@@ -408,7 +409,7 @@ function FreshnessStrip() {
 
   return (
     <div className="flex items-center gap-2 px-2 py-1 text-[11px] md:px-3">
-      <span className={`taper shrink-0 border px-2 py-0.5 text-[10px] font-bold uppercase tracking-label ${tone}`}>{pill}</span>
+      <span className={`shrink-0 border px-2 py-0.5 text-[10px] font-bold uppercase tracking-label ${tone}`}>{pill}</span>
       <span className="min-w-0 truncate text-ink-muted">
         Consensus as of <span className="text-ink">{new Date(fresh.newest.date).toLocaleDateString()}</span>
         <span className="hidden text-ink-ghost sm:inline"> · {fresh.newest.name} · {state.sources.length} source{state.sources.length > 1 ? "s" : ""}</span>
@@ -419,6 +420,7 @@ function FreshnessStrip() {
       <button onClick={() => refreshAll()} disabled={running}
         title="Re-pull every source the app can reach — the same run as Setup's one button"
         className="ctl ctl-quiet hover:border-accent hover:text-accent">
+        <Refresh size={12} className={running ? "animate-spin-slow" : ""} />
         {running ? "Refreshing…" : "Refresh"}
       </button>
     </div>
@@ -449,10 +451,10 @@ function OverflowMenu({ onShortcuts, onReset, onClearFilters, filtered }) {
     <div ref={ref} className="relative">
       <button onClick={() => { setOpen((o) => !o); setArming(false); }}
         aria-haspopup="menu" aria-expanded={open} aria-label="More board actions"
-        className={`ctl px-2 ${open ? "border-ink text-ink" : ""}`}>⋯</button>
+        className={`ctl px-2 py-[7px] ${open ? "border-ink text-ink" : ""}`}><Ellipsis /></button>
       {open && (
         <div role="menu"
-          className="absolute right-0 top-full z-40 mt-1 w-60 border border-line bg-panel py-1 shadow-lg shadow-black/10">
+          className="animate-rise absolute right-0 top-full z-40 mt-1 w-60 border border-line bg-panel py-1 shadow-lg shadow-black/10">
           <button role="menuitem" className={item} onClick={() => { setOpen(false); onShortcuts(); }}>
             Keyboard shortcuts <span className="num ml-1 text-ink-ghost">?</span>
           </button>
@@ -489,17 +491,17 @@ function OverflowMenu({ onShortcuts, onReset, onClearFilters, filtered }) {
 // by what you are trying to do rather than listed by key.
 const SHORTCUTS = [
   ["Move around", [["↑ ↓", "or j / k — walk the board"], ["/", "jump to search"], ["enter", "open the player card"], ["esc", "close card, panel or dialog"]]],
-  ["Change your order", [["shift+↑ ↓", "move the selected player"], ["[  ]", "the same, one hand on the keys"], ["drag a row", "move him anywhere"]]],
+  ["Change your order", [["shift+↑ ↓", "move the selected player"], ["[  ]", "the same, one hand on the keys"], ["drag", "a row, to move him anywhere"]]],
   ["Mark players", [["1", "Favorite"], ["2", "Sleeper"], ["3", "Reliable"], ["4", "Avoid"], ["5", "Handcuff"]]],
-  ["Tiers", [["t", "cut or heal a tier above the selection"], ["drag ⠿", "drop a divider on a player"], ["✕ on a bar", "pull that divider out"]]],
+  ["Tiers", [["t", "cut or heal a tier above the selection"], ["drag", "the tier handle onto a player"], ["?", "this sheet, from anywhere"]]],
 ];
 
 function ShortcutsModal({ onClose }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-6"
+    <div className="animate-fade fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-6"
       onClick={onClose} role="dialog" aria-modal="true" aria-label="Keyboard shortcuts">
       <div onClick={(e) => e.stopPropagation()}
-        className="max-h-[85vh] w-full max-w-2xl overflow-y-auto border border-line bg-ground shadow-2xl sm:max-w-3xl">
+        className="animate-rise max-h-[85vh] w-full max-w-2xl overflow-y-auto border border-line bg-ground shadow-2xl sm:max-w-3xl">
         <div className="sticky top-0 flex items-center justify-between border-b border-line bg-ground px-4 py-3">
           <h2 className="label-lg text-ink">Keyboard</h2>
           <button onClick={onClose} className="ctl ctl-quiet" aria-label="Close">Close</button>
@@ -511,7 +513,9 @@ function ShortcutsModal({ onClose }) {
               <dl className="space-y-1.5">
                 {keys.map(([k, what]) => (
                   <div key={k} className="flex items-baseline gap-3">
-                    <dt className="num w-24 shrink-0 text-right text-[11px] font-bold text-ink">{k}</dt>
+                    <dt className="w-24 shrink-0 text-right">
+                      <kbd>{k}</kbd>
+                    </dt>
                     <dd className="text-[12px] leading-snug text-ink-muted">{what}</dd>
                   </div>
                 ))}
@@ -855,6 +859,13 @@ export default function Board() {
   // and the seam it leaves shows a sliver of the row passing behind — cells are
   // the one place every engine agrees to paint.
   const th = "label whitespace-nowrap border-b border-line bg-ground px-2 py-2.5 text-left text-ink-faint";
+  // Numbers right-align, and their headers align with them. A column of 1, 14,
+  // 7, 20 set flush left lines the digits up on the tens place, so scanning
+  // down it you compare the wrong column of glyphs; flush right puts the units
+  // under the units, which is the only reason a mono face was worth loading.
+  // Names, ranks and Cons stay left: they are labels and chips, not quantities.
+  const thNum = `${th} !text-right`;
+  const tdNum = "px-2 py-1 text-right tabular-nums";
 
   // A sortable header used to look exactly like an unsortable one until you had
   // already clicked it. The caret is always in the layout — ghosted until hover,
@@ -883,14 +894,13 @@ export default function Board() {
       <button title={title} onClick={() => setSortKey(on ? "my" : key)}
         className={`group/sort inline-flex items-center gap-1 ${on ? "text-accent" : "hover:text-ink"}`}>
         {label}
-        <span aria-hidden className={on ? "" : "text-ink-ghost opacity-0 transition-opacity group-hover/sort:opacity-100"}>
-          {on ? "↓" : "↕"}
-        </span>
+        <Sort active={on} size={11}
+          className={on ? "" : "text-ink-ghost opacity-0 transition-opacity group-hover/sort:opacity-100"} />
       </button>
     );
   };
   const sortTh = (key, label, title) => (
-    <th className={th} aria-sort={sortKey === key ? "ascending" : "none"}>{sortBtn(key, label, title)}</th>
+    <th className={thNum} aria-sort={sortKey === key ? "ascending" : "none"}>{sortBtn(key, label, title)}</th>
   );
 
   // How far this player sits from where I have him, in the current lens.
@@ -951,7 +961,7 @@ export default function Board() {
           <FreshnessStrip />
           {staleSources.length > 0 && (
             <div className="flex items-center gap-2 border-t border-warn/30 bg-warn/10 px-2 py-1 text-[11px] text-warn md:px-3">
-              <span className="shrink-0">⚠</span>
+              <Warning size={13} className="shrink-0" />
               <span className="min-w-0 truncate">
                 {staleSources.map((s) => s.name).join(", ")} {staleSources.length > 1 ? "are" : "is"} more than 7 days old — re-import before drafting.
               </span>
@@ -963,12 +973,16 @@ export default function Board() {
               so they sit apart at the other end of the row. */}
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 border-t border-line px-2 py-1.5 md:px-3">
             <div className="relative order-1 flex items-center">
+              <Search size={13} className="pointer-events-none absolute left-2.5 text-ink-ghost" />
               <input ref={searchRef} value={query} onChange={(e) => setQuery(e.target.value)}
-                aria-label="Search players" placeholder="Search  /"
-                className="field w-32 pr-6 md:w-52" />
+                aria-label="Search players" placeholder="Search"
+                className="field w-32 pl-7 pr-7 md:w-52" />
+              {!query && (
+                <kbd className="pointer-events-none absolute right-2 hidden px-1 py-0 text-[9px] font-normal text-ink-ghost md:block">/</kbd>
+              )}
               {query && (
                 <button onClick={() => { setQuery(""); searchRef.current?.focus(); }} aria-label="Clear search"
-                  className="absolute right-1 px-1 text-[13px] leading-none text-ink-ghost transition-colors hover:text-ink">✕</button>
+                  className="absolute right-1.5 text-ink-ghost transition-colors hover:text-ink"><Close size={13} /></button>
               )}
             </div>
 
@@ -1000,7 +1014,7 @@ export default function Board() {
               Tools
               {/* a filter you cannot see is a filter you will not remember */}
               {(tagFilter || overlay) && <span className="h-1.5 w-1.5 rounded-full bg-accent" />}
-              <span aria-hidden className="text-ink-ghost">{toolsOpen ? "▴" : "▾"}</span>
+              <Chevron dir={toolsOpen ? "up" : "down"} size={12} className="text-ink-ghost" />
             </button>
 
             <span className="hidden md:order-4 md:block md:grow" />
@@ -1034,8 +1048,8 @@ export default function Board() {
             <div className="flex items-center gap-2 border-t border-accent/30 bg-accent/[0.07] px-2 py-1.5 md:px-3">
               <ViewPicker />
               <span className="min-w-0 truncate text-[11px] text-ink-muted">
-                Sorted through <span className="font-semibold text-accent">{lensName}</span> — ▲▼ is how far each player
-                moves from your order. Dragging, tiers and the overlay are paused.
+                Sorted through <span className="font-semibold text-accent">{lensName}</span> — the caret on each row is how
+                far that player moves from your order. Dragging, tiers and the overlay are paused.
               </span>
               <span className="grow" />
               <button onClick={() => setSortKey("my")} className="ctl border-accent/40 text-accent hover:border-accent">
@@ -1075,8 +1089,8 @@ export default function Board() {
                   <span className="label shrink-0 text-ink-faint">Tiers{posFilter ? ` · ${posFilter}` : ""}</span>
                   <span draggable onDragStart={(e) => onDragStart(e, "new", "newTier")}
                     title="Drag onto a player to drop a tier divider above him"
-                    className="ctl ctl-quiet hidden cursor-grab select-none border-dashed border-line-strong text-ink-muted hover:border-accent hover:text-accent active:cursor-grabbing md:inline-flex">
-                    ⠿ <span className="hidden 2xl:inline">divider</span>
+                    className="ctl hidden cursor-grab select-none bg-panel text-ink-muted hover:border-accent hover:text-accent active:cursor-grabbing md:inline-flex">
+                    <Grip size={13} /><span className="hidden 2xl:inline">divider</span>
                   </span>
                   <button onClick={autoTiers} className="ctl ctl-quiet"
                     title={`Cut tiers on consensus gaps within ${posFilter || "the full board"}`}>Suggest</button>
@@ -1114,7 +1128,7 @@ export default function Board() {
                 <th className={th} title="Rank within position, in my order">Pos#</th>
                 <th className={th}>Player</th>
                 {shownSources.map((s) => (
-                  <th key={s.id} className={`${th} max-w-[5.5rem]`}
+                  <th key={s.id} className={`${thNum} max-w-[5.5rem]`}
                     title={`${s.name} · ${s.type.toUpperCase()} · imported ${new Date(s.date).toLocaleDateString()}${daysAgo(s.date) > 7 ? " · STALE" : ""}`}>
                     <span className="block truncate">{s.name}{daysAgo(s.date) > 7 && <span className="text-warn">*</span>}</span>
                   </th>
@@ -1170,8 +1184,8 @@ export default function Board() {
                             {breakIdx !== undefined && (
                               <button draggable={false} title="Pull this divider out (merges into the tier above)"
                                 onClick={(e) => { e.stopPropagation(); dispatch({ type: "TOGGLE_TIER_BREAK", scope: tierScope, index: breakIdx }); }}
-                                className="rounded px-1 leading-none text-ink-ghost opacity-0 transition hover:bg-band hover:text-behind focus:opacity-100 group-hover:opacity-100">
-                                ✕
+                                className="rounded p-1 text-ink-ghost opacity-0 transition hover:bg-band hover:text-behind focus:opacity-100 group-hover:opacity-100">
+                                <Close size={12} />
                               </button>
                             )}
                           </div>
@@ -1205,7 +1219,7 @@ export default function Board() {
                           {!!lensMove(r) && (
                             <span title={`${lensMove(r) > 0 ? "This lens has him" : "You have him"} ${Math.abs(lensMove(r))} spots earlier`}
                               className={`text-[10px] ${lensMove(r) > 0 ? "text-ahead" : "text-behind"}`}>
-                              {lensMove(r) > 0 ? `▲${lensMove(r)}` : `▼${-lensMove(r)}`}
+                              <Caret dir={lensMove(r) > 0 ? "up" : "down"} size={7} />{Math.abs(lensMove(r))}
                             </span>
                           )}
                         </span>
@@ -1221,12 +1235,12 @@ export default function Board() {
                           <span className="text-[13px] font-semibold tracking-tight">{r.p.name}</span>
                           <span className="ml-2 text-[11px] text-ink-faint">{r.p.team || "FA"} · {r.p.bye ?? "?"}</span>
                           <InjuryBadge p={r.p} /><TagDots p={r.p} />
-                          {r.p.handcuffOf && <span title={`Handcuff of ${state.players[r.p.handcuffOf]?.name}`} className="ml-1 text-[10px] text-pos-TE">⛓</span>}
-                          {r.p.notes && <span title={r.p.notes} className="ml-1 text-[10px] text-ink-faint">✎</span>}
+                          {r.p.handcuffOf && <span title={`Handcuff of ${state.players[r.p.handcuffOf]?.name}`} className="ml-1.5 text-pos-TE"><Link size={11} /></span>}
+                          {r.p.notes && <span title={r.p.notes} className="ml-1.5 text-ink-faint"><Pencil size={11} /></span>}
                         </div>
                       </td>
                       {shownSources.map((s) => (
-                        <td key={s.id} className="px-2 py-1 tabular-nums text-ink-muted">{r.perSource[s.id] != null ? fmt(r.perSource[s.id], s.type === "adp" ? 1 : 0) : "–"}</td>
+                        <td key={s.id} className={`${tdNum} text-ink-muted`}>{r.perSource[s.id] != null ? fmt(r.perSource[s.id], s.type === "adp" ? 1 : 0) : "–"}</td>
                       ))}
                       <td className="px-2 py-1 whitespace-nowrap">
                         <span className="inline-flex items-center gap-1.5">
@@ -1235,11 +1249,11 @@ export default function Board() {
                         </span>
                       </td>
                       {!compact && <>
-                        <td className={`px-2 py-1 tabular-nums ${r.sigma > 12 ? "text-warn" : "text-ink-muted"}`}>{fmt(r.sigma, 1)}</td>
-                        <td className="px-2 py-1 tabular-nums"><Delta v={r.yahooDelta} invert /></td>
-                        <td className="px-2 py-1 tabular-nums"><Delta v={r.adpDelta} d={0} /></td>
-                        <td className="px-2 py-1 tabular-nums text-ink-muted">{fmt(r.pts, 0)}</td>
-                        <td className={`px-2 py-1 tabular-nums font-medium ${r.vor > 0 ? "text-ahead" : "text-ink-faint"}`}>{fmt(r.vor, 0)}</td>
+                        <td className={`${tdNum} ${r.sigma > 12 ? "text-warn" : "text-ink-muted"}`}>{fmt(r.sigma, 1)}</td>
+                        <td className={tdNum}><Delta v={r.yahooDelta} invert /></td>
+                        <td className={tdNum}><Delta v={r.adpDelta} d={0} /></td>
+                        <td className={`${tdNum} text-ink-muted`}>{fmt(r.pts, 0)}</td>
+                        <td className={`${tdNum} font-medium ${r.vor > 0 ? "text-ahead" : "text-ink-faint"}`}>{fmt(r.vor, 0)}</td>
                         <td className="px-2 py-1"><Trend move={r.move} p={r.p} trending={state.trending} /></td>
                       </>}
                     </tr>
@@ -1260,7 +1274,7 @@ export default function Board() {
             onMore={() => setLimit(limit + 200)} onAll={() => setLimit(visible.length)} />
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-line px-3 py-2.5 text-[11px] text-ink-ghost">
             <button onClick={() => setShortcuts(true)} className="ctl ctl-quiet">Keyboard <span className="num normal-case">?</span></button>
-            <span>Drag a row to re-rank · drag <span className="num">⠿</span> onto a player to cut a tier · double-click a row for situation, stats and news.</span>
+            <span>Drag a row to re-rank · drag the tier handle onto a player to cut a tier · double-click a row for situation, stats and news.</span>
             {!board.hasProj && !compact && (
               <span className="text-warn/80">Pts≈ is a generic curve — import projections for scoring-aware values.</span>
             )}
@@ -1293,7 +1307,7 @@ export default function Board() {
                         <button title="Delete this tier break"
                           onClick={(e) => { e.stopPropagation(); dispatch({ type: "TOGGLE_TIER_BREAK", scope: tierScope, index: breakIdx }); }}
                           className="-my-1 rounded px-2 py-1 text-ink-faint active:text-behind">
-                          ✕
+                          <Close size={13} />
                         </button>
                       )}
                     </div>
@@ -1334,9 +1348,9 @@ export default function Board() {
                   </div>
                   <div className="flex shrink-0 flex-col border-l border-line/50" onClick={(e) => e.stopPropagation()}>
                     <button aria-label={`Move ${r.p.name} up one`} onClick={() => dispatch({ type: "MOVE", id: r.id, delta: -1 })}
-                      className="flex h-1/2 min-h-[34px] w-11 items-center justify-center text-xs text-ink-muted active:bg-band">▲</button>
+                      className="flex h-1/2 min-h-[34px] w-11 items-center justify-center text-ink-muted active:bg-band"><Caret dir="up" size={10} /></button>
                     <button aria-label={`Move ${r.p.name} down one`} onClick={() => dispatch({ type: "MOVE", id: r.id, delta: 1 })}
-                      className="flex h-1/2 min-h-[34px] w-11 items-center justify-center border-t border-line/50 text-xs text-ink-muted active:bg-band">▼</button>
+                      className="flex h-1/2 min-h-[34px] w-11 items-center justify-center border-t border-line/50 text-ink-muted active:bg-band"><Caret dir="down" size={10} /></button>
                   </div>
                 </div>
                 {expanded === r.id && (

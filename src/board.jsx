@@ -858,14 +858,18 @@ export default function Board() {
   // thead paints its own background unreliably once the table scrolls under it,
   // and the seam it leaves shows a sliver of the row passing behind — cells are
   // the one place every engine agrees to paint.
-  const th = "label whitespace-nowrap border-b border-line bg-ground px-2 py-2.5 text-left text-ink-faint";
+  // The density switch finally earns its name: Full is the view you browse and
+  // think in, so it gets air, and draft day is the one where two more players
+  // on screen beats everything else.
+  const rowPad = compact ? "py-1" : "py-2";
+  const th = "label whitespace-nowrap border-b border-line bg-panel px-2 py-3 text-left text-ink-faint";
   // Numbers right-align, and their headers align with them. A column of 1, 14,
   // 7, 20 set flush left lines the digits up on the tens place, so scanning
   // down it you compare the wrong column of glyphs; flush right puts the units
   // under the units, which is the only reason a mono face was worth loading.
   // Names, ranks and Cons stay left: they are labels and chips, not quantities.
-  const thNum = `${th} !text-right`;
-  const tdNum = "px-2 py-1 text-right tabular-nums";
+  const thNum = `${th} !px-1.5 !text-right`;
+  const tdNum = `px-1.5 ${rowPad} text-right tabular-nums`;
 
   // A sortable header used to look exactly like an unsortable one until you had
   // already clicked it. The caret is always in the layout — ghosted until hover,
@@ -945,19 +949,32 @@ export default function Board() {
   // containing block, so capping this at one viewport would unstick the
   // toolbar partway down the list. min-h- lets it grow with the content.
   return (
-    <div ref={rootRef} className={`flex min-h-full ${compact ? "shell" : "shell-board"}`}
+    <div ref={rootRef} className={`flex min-h-full gap-4 py-4 ${compact ? "shell-draft" : "shell-board"}`}
       style={{
         "--panelMax": scrollportH ? `${scrollportH}px` : "100dvh",
         "--stickyH": `${toolbarH + theadH + 8}px`,
       }}>
-      <div className="min-w-0 flex-1">
+      {/* The sheet hugs its table. Fourteen columns have a minimum width, and
+          on a narrow laptop that minimum is wider than the measure — which
+          used to spill invisibly into the page and, now the page is a
+          different colour from the sheet, spilled straight across its right
+          border. w-max lets the sheet grow to the table instead of being
+          crossed by it; <main> is already a horizontal scroll container, so
+          the overflow scrolls rather than breaking the frame.
+
+          Only from md up: w-max is max-content, and max-content defeats
+          flex-wrap — on a phone it stretched the command bar into one
+          unwrapped line running off the side of the screen. Below md there is
+          no wide table to hug, so the sheet is simply full width. */}
+      <div className={`w-full min-w-0 flex-1 border border-line bg-panel shadow-[0_1px_2px_rgb(0_0_0/0.04),0_8px_24px_-12px_rgb(0_0_0/0.10)] ${
+        compact ? "" : "md:w-max md:min-w-full md:flex-none"}`}>
         {/* ---------- command bar ----------
             Three bands, in the order you ask the questions: how fresh is this,
             which players am I looking at, and what am I doing to them. It used
             to be one wrapping row of eighteen identically-drawn controls, which
             at laptop widths wrapped to four lines of sticky chrome and put a
             "replace my whole order" button next to the WR filter. */}
-        <div ref={toolbarRef} className="sticky top-0 z-20 border-b border-line bg-ground/95 backdrop-blur">
+        <div ref={toolbarRef} className="sticky top-0 z-20 border-b border-line bg-panel/95 backdrop-blur">
           <FreshnessStrip />
           {staleSources.length > 0 && (
             <div className="flex items-center gap-2 border-t border-warn/30 bg-warn/10 px-2 py-1 text-[11px] text-warn md:px-3">
@@ -1010,7 +1027,7 @@ export default function Board() {
               <button onClick={clearFilters} className="ctl ctl-quiet order-5 md:order-3">Clear</button>
             )}
             <button onClick={() => setToolsOpen((t) => !t)} aria-expanded={toolsOpen}
-              className={`ctl order-6 lg:hidden ${toolsOpen ? "border-ink text-ink" : ""}`}>
+              className={`ctl order-6 ${compact ? "" : "lg:hidden"} ${toolsOpen ? "border-ink text-ink" : ""}`}>
               Tools
               {/* a filter you cannot see is a filter you will not remember */}
               {(tagFilter || overlay) && <span className="h-1.5 w-1.5 rounded-full bg-accent" />}
@@ -1060,8 +1077,8 @@ export default function Board() {
             // A phone scrolls this band sideways; anything wider wraps it,
             // because a desktop with the room to show "Suggest" should not be
             // hiding it behind a horizontal scroll nobody looks for.
-            <div className={`items-center gap-1.5 overflow-x-auto border-t border-line px-2 py-1.5 md:flex-wrap md:gap-y-1.5 md:overflow-x-visible md:px-3 lg:flex ${
-              toolsOpen ? "flex" : "hidden"}`}>
+            <div className={`items-center gap-1.5 overflow-x-auto border-t border-line px-2 py-1.5 md:flex-wrap md:gap-y-1.5 md:overflow-x-visible md:px-3 ${
+              compact ? "" : "lg:flex"} ${toolsOpen ? "flex" : "hidden"}`}>
                 <ViewPicker />
                 <button onClick={() => setUI({ overlay: !overlay })}
                   aria-pressed={overlay}
@@ -1170,17 +1187,20 @@ export default function Board() {
                             hard rule with the tier number set in the ink block
                             — the same weight the app gives an active tab. */}
                         <td colSpan={colCount} style={{ top: toolbarH + theadH }}
-                          className="sticky z-[9] border-y border-line bg-band px-2 py-1.5">
-                          <div className="flex items-center gap-2">
-                            <span className="num taper shrink-0 bg-ink px-2 py-0.5 text-[10px] font-bold tracking-label text-ink-invert">
+                          className="sticky z-[9] border-y border-line bg-band px-2 py-2">
+                          <div className="flex items-center gap-2.5">
+                            {/* The tier number is the loudest mark on the board
+                                on purpose. Every rule under every row is gone,
+                                so this is what tells you where one group of
+                                players ends and the next begins. */}
+                            <span className="num taper shrink-0 bg-ink px-2.5 py-1 text-[12px] font-bold tracking-[0.06em] text-ink-invert">
                               {String(tier).padStart(2, "0")}
                             </span>
-                            <span className="label shrink-0 text-ink-faint">Tier</span>
-                            <input value={tierNames[tier] ?? ""} placeholder="name this tier"
+                            <input value={tierNames[tier] ?? ""} placeholder="Name this tier"
                               draggable={false} onDragStart={(e) => e.preventDefault()}
                               onClick={(e) => e.stopPropagation()}
                               onChange={(e) => dispatch({ type: "SET_TIER_NAME", scope: tierScope, tier, name: e.target.value })}
-                              className="w-48 rounded border border-transparent bg-transparent px-1 py-0.5 text-[11px] font-semibold normal-case tracking-normal text-ink placeholder:font-normal placeholder:text-ink-ghost hover:border-line focus:border-accent focus:bg-ground focus:outline-none" />
+                              className="w-56 border border-transparent bg-transparent px-1.5 py-0.5 text-[13px] font-semibold normal-case tracking-[-0.01em] text-ink placeholder:font-normal placeholder:text-ink-ghost hover:border-line focus:border-accent focus:bg-panel focus:outline-none" />
                             {breakIdx !== undefined && (
                               <button draggable={false} title="Pull this divider out (merges into the tier above)"
                                 onClick={(e) => { e.stopPropagation(); dispatch({ type: "TOGGLE_TIER_BREAK", scope: tierScope, index: breakIdx }); }}
@@ -1201,13 +1221,13 @@ export default function Board() {
                       onDrop={(e) => onDropRow(e, r.id)}
                       onClick={() => toggleExpand(r.id)}
                       onDoubleClick={() => setDetail(r.id)}
-                      className={`board-row cursor-pointer transition-colors [&>td]:border-b [&>td]:border-line/50 ${
-                        sel ? "bg-accent/10 [&>td]:border-accent/25" : "hover:bg-band/60"}`}>
+                      className={`board-row group/row cursor-pointer transition-colors ${
+                        sel ? "bg-accent/[0.07]" : "hover:bg-band/50"}`}>
                       {/* My rank and consensus are the two numbers the whole
                           table exists to compare, so they get chip weight and
                           everything else stays plain. */}
-                      <td className="px-2 py-1 whitespace-nowrap">
-                        <span className="inline-flex items-center gap-1">
+                      <td className={`whitespace-nowrap px-2 ${rowPad}`}>
+                        <span className="inline-flex items-center gap-1.5">
                           <span className="num taper bg-ink px-2 py-0.5 text-[13px] font-bold text-ink-invert">{String(r.myRank).padStart(2, "0")}</span>
                           <ConsGap myRank={r.myRank} consensus={r.consensus} />
                           {showOverlay && consensusPos?.get(r.id) != null && (
@@ -1224,15 +1244,15 @@ export default function Board() {
                           )}
                         </span>
                       </td>
-                      <td className={`num whitespace-nowrap px-2 py-1 text-[11px] font-semibold ${ps.text}`}>{r.p.pos}{r.posRank}</td>
+                      <td className={`num whitespace-nowrap px-2 text-[11px] font-bold ${rowPad} ${ps.text}`}>{r.p.pos}{r.posRank}</td>
                       {/* The position used to be printed here as well as in
                           Pos# and in the colour rail — three sayings of the
                           same thing, and the one that cost the name its second
                           line. nowrap keeps it on one now that it fits. */}
-                      <td className="whitespace-nowrap px-2 py-1">
+                      <td className={`whitespace-nowrap px-2 ${rowPad}`}>
                         <div className="flex items-center">
-                          <span className={`mr-2 h-4 w-1 shrink-0 rounded-sm ${ps.rail}`} />
-                          <span className="text-[13px] font-semibold tracking-tight">{r.p.name}</span>
+                          <span className={`mr-2 h-5 w-[3px] shrink-0 ${ps.rail}`} />
+                          <span className="text-[14px] font-semibold leading-none tracking-[-0.01em]">{r.p.name}</span>
                           <span className="ml-2 text-[11px] text-ink-faint">{r.p.team || "FA"} · {r.p.bye ?? "?"}</span>
                           <InjuryBadge p={r.p} /><TagDots p={r.p} />
                           {r.p.handcuffOf && <span title={`Handcuff of ${state.players[r.p.handcuffOf]?.name}`} className="ml-1.5 text-pos-TE"><Link size={11} /></span>}
@@ -1242,9 +1262,9 @@ export default function Board() {
                       {shownSources.map((s) => (
                         <td key={s.id} className={`${tdNum} text-ink-muted`}>{r.perSource[s.id] != null ? fmt(r.perSource[s.id], s.type === "adp" ? 1 : 0) : "–"}</td>
                       ))}
-                      <td className="px-2 py-1 whitespace-nowrap">
-                        <span className="inline-flex items-center gap-1.5">
-                          <span className="num border border-line bg-panel px-2 py-0.5 text-[13px] font-semibold text-ink">{fmt(r.consensus, 1)}</span>
+                      <td className={`whitespace-nowrap px-2 ${rowPad}`}>
+                        <span className="inline-flex items-center gap-2">
+                          <span className="num border border-line bg-panel-raised px-2 py-0.5 text-[13px] font-semibold text-ink">{fmt(r.consensus, 1)}</span>
                           <RankBar compact myRank={r.myRank} consensus={r.consensus} sources={opinionsFor(r)} />
                         </span>
                       </td>
@@ -1254,7 +1274,7 @@ export default function Board() {
                         <td className={tdNum}><Delta v={r.adpDelta} d={0} /></td>
                         <td className={`${tdNum} text-ink-muted`}>{fmt(r.pts, 0)}</td>
                         <td className={`${tdNum} font-medium ${r.vor > 0 ? "text-ahead" : "text-ink-faint"}`}>{fmt(r.vor, 0)}</td>
-                        <td className="px-2 py-1"><Trend move={r.move} p={r.p} trending={state.trending} /></td>
+                        <td className={`px-2 ${rowPad}`}><Trend move={r.move} p={r.p} trending={state.trending} /></td>
                       </>}
                     </tr>
                     {expanded === r.id && (
@@ -1294,14 +1314,15 @@ export default function Board() {
             return (
               <React.Fragment key={r.id}>
                 {header && (
-                  <div className="sticky z-10 border-y border-line bg-band px-3 py-1.5" style={{ top: toolbarH }}>
+                  <div className="sticky z-10 border-y border-line bg-band px-3 py-2" style={{ top: toolbarH }}>
                     <div className="flex items-center justify-between gap-2">
                       <span className="flex min-w-0 items-center gap-2">
-                        <span className="num taper shrink-0 bg-ink px-2 py-0.5 text-[10px] font-bold tracking-label text-ink-invert">
+                        <span className="num taper shrink-0 bg-ink px-2.5 py-1 text-[12px] font-bold tracking-[0.06em] text-ink-invert">
                           {String(tier).padStart(2, "0")}
                         </span>
-                        <span className="label shrink-0 text-ink-faint">Tier</span>
-                        {tierNames[tier] && <span className="truncate text-[11px] font-semibold text-ink">{tierNames[tier]}</span>}
+                        {tierNames[tier]
+                          ? <span className="truncate text-[13px] font-semibold text-ink">{tierNames[tier]}</span>
+                          : <span className="label shrink-0 text-ink-ghost">Tier</span>}
                       </span>
                       {breakIdx !== undefined && (
                         <button title="Delete this tier break"
@@ -1320,9 +1341,9 @@ export default function Board() {
                     name has the width it needs at 375px. */}
                 <div onTouchStart={(e) => onTouchStart(e, r.id)} onTouchEnd={(e) => onTouchEnd(e, r.id)}
                   onClick={() => toggleExpand(r.id)}
-                  className={`board-row flex items-stretch gap-2 border-b border-line/50 pl-3 transition-colors active:bg-band/60 ${
-                    selected === r.id ? "bg-accent/10" : ""}`}>
-                  <span className={`my-2 w-1 shrink-0 rounded-sm ${ps.rail}`} />
+                  className={`board-row flex items-stretch gap-2.5 border-b border-line/40 pl-3 transition-colors active:bg-band/60 ${
+                    selected === r.id ? "bg-accent/[0.07]" : ""}`}>
+                  <span className={`my-2 w-[3px] shrink-0 ${ps.rail}`} />
                   <div className="min-w-0 flex-1 py-2.5">
                     <div className="flex items-center gap-1.5">
                       <span className="num taper shrink-0 bg-ink px-1.5 py-0.5 text-[12px] font-bold text-ink-invert">

@@ -71,6 +71,21 @@ baselines, different shapes per platform. `src/icons.jsx` is one 16-unit grid,
 deliberately: `Caret` and `Dot` are data, not chrome, and need the same weight
 as the number beside them.
 
+**The page is paper; the board is the sheet on it.** `--ground` and `--panel`
+were both pure white, which is what made the board read as a spreadsheet: with
+the page and the sheet the same colour there is no figure and no ground, only
+rules floating on nothing. The page is a warm grey now and the board is a white
+sheet lying on it, and that one separation is what let the rules come out — the
+edge of the sheet does the work a hairline under every row was doing. Ink is not
+`#000` either; pure black on paper is a hole in the page and at 11px it blooms.
+
+The density switch finally earns its name. **Full** is the view you browse and
+think in, so it breathes: 14 columns on a 1170px sheet, no rule under any row,
+tier bands as the only horizontal structure. **Draft day** is the one where two
+more players on screen beats everything else, so rows tighten, the measure drops
+to 820px, and the tools band starts collapsed — tags, tiers and the lens are
+prep-time controls, not things you touch on the clock.
+
 Numbers are right-aligned and their headers with them, so the units sit under
 the units — which is the only reason a mono face was worth loading. Names, ranks
 and `Cons` stay left; they are labels and chips, not quantities.

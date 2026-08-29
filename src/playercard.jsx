@@ -34,7 +34,7 @@ const Meter = ({ label, score, read, tone = "bg-ink" }) => (
     </div>
     <div className="mt-1.5 flex gap-1.5">
       {[1, 2, 3, 4, 5].map((i) => (
-        <span key={i} className={`h-2 flex-1 rounded-full transition-colors ${i <= score ? tone : "bg-band"}`} />
+        <span key={i} className={`h-1.5 flex-1 rounded-full transition-colors ${i <= score ? tone : "bg-band"}`} />
       ))}
     </div>
   </div>
@@ -214,20 +214,15 @@ export default function PlayerCard({ row, sources, onOpenDetail, onClose }) {
       <div className="mt-4 flex flex-wrap items-center gap-1.5">
         {TAGS.map((t) => (
           <button key={t.key} onClick={() => dispatch({ type: "TOGGLE_TAG", id: p.id, tag: t.key })}
-            className={`border px-2 py-1 text-[10px] font-semibold uppercase tracking-label transition-colors ${
-              p.tags.includes(t.key) ? t.cls : "border-line text-ink-faint hover:border-ink hover:text-ink"}`}>
+            className={`ctl ${p.tags.includes(t.key) ? t.cls : ""}`}>
             {t.label}
           </button>
         ))}
         <span className="grow" />
         <button onClick={() => onOpenDetail(p.id)}
-          className="border border-line px-2.5 py-1 text-[10px] font-semibold uppercase tracking-label text-ink-muted transition-colors hover:border-ink hover:text-ink">
-          Situation, stats &amp; news
-        </button>
+          className="ctl">Situation, stats &amp; news</button>
         <button onClick={onClose} aria-label="Collapse"
-          className="border border-line px-2.5 py-1 text-[10px] font-semibold uppercase tracking-label text-ink-faint transition-colors hover:border-ink hover:text-ink">
-          Close
-        </button>
+          className="ctl ctl-quiet">Close</button>
       </div>
 
       <textarea value={p.notes} rows={2} placeholder="Why do you have him here?"

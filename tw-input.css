@@ -37,23 +37,32 @@
    forcing a hand-written token for every translucent variant.
 --------------------------------------------------------------------------- */
 :root {
-  /* ground: page, sunken wells, raised panels, the band behind a tier header */
-  --ground: 255 255 255;
-  --ground-sunken: 244 244 245;
+  /* ground: page, sunken wells, raised panels, the band behind a tier header.
+  
+     --ground and --panel were both pure white, which is why the board read as
+     a spreadsheet: with the page and the sheet the same colour there is no
+     figure and no ground, only rules floating on nothing. The page is paper
+     now — a warm grey a couple of steps down — and the board is the white
+     sheet lying on it. That one separation is what lets the rules come out,
+     because the edge of the sheet does the work they were doing. */
+  --ground: 246 245 242;
+  --ground-sunken: 238 237 233;
   --panel: 255 255 255;
-  --panel-raised: 250 250 250;
-  --band: 235 235 236;
+  --panel-raised: 250 249 246;
+  --band: 240 238 233;
 
-  /* ink: text, in descending confidence */
-  --ink: 0 0 0;
-  --ink-muted: 82 82 91;
-  --ink-faint: 113 113 122;
-  --ink-ghost: 161 161 170;
+  /* ink: text, in descending confidence. Not #000 — pure black on paper is a
+     hole in the page, and at 11px it blooms. */
+  --ink: 24 23 22;
+  --ink-muted: 91 88 84;
+  --ink-faint: 130 126 120;
+  --ink-ghost: 172 168 160;
   --ink-invert: 255 255 255;
 
-  /* structure — the reference's panel grey, used as a rule */
-  --line: 215 215 215;
-  --line-strong: 161 161 170;
+  /* structure. Softer than the old 215 grey because there are far fewer of
+     them now and each one has to be worth drawing. */
+  --line: 226 223 216;
+  --line-strong: 178 174 165;
 
   /* accent: mine, and the focus state. Pure blue is the reference's own. */
   --accent: 0 0 255;
@@ -85,20 +94,24 @@
 }
 
 :root[data-theme="dark"] {
-  --ground: 9 9 11;
-  --ground-sunken: 0 0 0;
-  --panel: 19 19 22;
-  --panel-raised: 28 28 32;
-  --band: 35 35 40;
+  /* Same idea inverted: the page is the darkest surface and the board sits
+     above it. It used to be the other way round — panel 19 on ground 9 is a
+     4-value separation nobody can see, and --ground-sunken was pure black,
+     which made wells look like holes cut in the app. */
+  --ground: 14 14 16;
+  --ground-sunken: 8 8 10;
+  --panel: 26 26 30;
+  --panel-raised: 34 34 39;
+  --band: 40 40 46;
 
-  --ink: 250 250 250;
-  --ink-muted: 161 161 170;
-  --ink-faint: 129 129 138;
-  --ink-ghost: 90 90 99;
-  --ink-invert: 0 0 0;
+  --ink: 244 244 245;
+  --ink-muted: 166 166 175;
+  --ink-faint: 132 132 142;
+  --ink-ghost: 96 96 105;
+  --ink-invert: 14 14 16;
 
-  --line: 42 42 48;
-  --line-strong: 63 63 70;
+  --line: 48 48 55;
+  --line-strong: 74 74 84;
 
   /* pure blue is unreadable on black; the focus indigo carries the role */
   --accent: 99 102 241;
@@ -219,7 +232,15 @@
      board carrying six or eight imported sources, not enough to strand the
      name half a screen from its numbers. */
   .shell-board {
-    width: min(100%, clamp(1120px, 68vw, 1560px));
+    width: min(100%, clamp(1170px, 68vw, 1560px));
+    margin-inline: auto;
+  }
+
+  /* Draft day is four columns. Left in the full-board measure it was half a
+     metre of empty sheet to the right of Cons, which reads as a page that
+     failed to load rather than as a list you can take in at a glance. */
+  .shell-draft {
+    width: min(100%, 820px);
     margin-inline: auto;
   }
 }

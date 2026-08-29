@@ -38,13 +38,13 @@ function App() {
   }, [theme]);
 
   return (
-    <div className="flex h-dvh flex-col bg-ground text-ink">
+    <div className="flex h-dvh flex-col bg-ground-sunken text-ink">
       {/* On a 390px phone the four tabs plus a glyph apiece plus the wordmark
           ran past the right edge and pushed Setup — the tab that loads your
           data — off screen behind a scroll nobody would think to try. The
           glyphs said nothing the label did not, so they went; the wordmark and
           the strapline are the parts a phone can do without. */}
-      <header className="border-b border-line">
+      <header className="border-b border-line bg-ground">
         <div className="shell flex items-center gap-1.5 px-2 py-2 md:gap-2 md:px-3">
           <div className="mr-0.5 flex shrink-0 select-none items-center gap-2 md:mr-1">
             <Mark />

@@ -57,12 +57,31 @@ a provider being down costs you that column and nothing else. There is no file t
 download and nothing to run in a terminal.
 
 **Board** — drag rows (or `[` `]` / shift+↑↓) to build your order, 1–5 to tag,
-`/` to search, Enter for the detail panel. `#` is overall rank and `Pos#` is rank
-within position, both in *your* order.
+`/` to search, Enter for the detail panel, `?` for every key at once. `#` is
+overall rank and `Pos#` is rank within position, both in *your* order.
 
-A strip above the toolbar says how old the board is — *updated today* in green,
-a day count in amber, `STALE` in red past a week — names the newest source, and
-offers **Refresh**, which re-runs the same full pull as *Load everything*.
+The command bar above the list is three bands, in the order you ask the
+questions:
+
+1. **How fresh is this** — *updated today* in green, a day count in amber,
+   `STALE` in red past a week — the newest source, and **Refresh**, which
+   re-runs the same full pull as *Load everything*.
+2. **Which players** — search, the position strip, how many are showing out of
+   how many you have, and the Full / Draft day density switch. The position
+   strip leads with **All** and each segment keeps a hairline of its own
+   position colour, so it doubles as the key for the rail beside every name.
+3. **What am I doing to them** — the View lens and the consensus overlay (two
+   answers to one question, so they sit together), the tag filters, and the tier
+   tools. Below 1024px this band is collapsed behind **Tools**, which carries a
+   dot when a filter inside it is on; the chrome above the first player costs a
+   fifth of a phone screen rather than a third.
+
+`⋯` at the end of the second band holds the keyboard sheet and *reset order to
+consensus*, which replaces your whole order and therefore asks first — it used
+to sit in the toolbar drawn exactly like a position filter.
+
+Filtering to nothing is an answerable state: the board names the filters that
+are on and offers to drop them, rather than showing an empty table.
 
 `#` and `Cons` are the two numbers the table exists to compare, so they carry
 chip weight while the other columns stay plain. Next to `#` is your rank minus
@@ -80,7 +99,9 @@ picks. Full is the prep view. The choice persists across reloads.
 The **View** picker is a lens: switch it to ESPN, Sleeper, consensus or any other
 source and the board re-sorts through that source's eyes, with ▲▼ on every row
 showing how far the player moves from where you have him. Dragging and tiers
-pause while a lens is on.
+pause while a lens is on, and the tools band says so in place of the tools it
+has paused — the lens notice costs the same height as the band it replaces
+rather than adding a line to the sticky chrome.
 
 **Consensus overlay** is the non-destructive version of that, and is a separate
 toggle rather than a lens setting: the board stays in your order with dragging
@@ -89,10 +110,12 @@ rank that player among the same rows. The lens answers "what does ESPN's board
 look like"; the overlay answers "where does the room disagree with mine", without
 taking my list away to do it. It also persists across reloads.
 
-Tiers work like the divider stick at a checkout belt: drag **⠿ drag divider**
-onto a player to cut above him, drag a bar to move it, type in the bar to name
-the tier, `✕` pulls it out. Tiers belong to the view you cut them in — filter to
-RB and you are editing RB tiers.
+Tiers work like the divider stick at a checkout belt: drag the **⠿** handle in
+the Tiers group onto a player to cut above him, drag a bar to move it, type in
+the bar to name the tier, `✕` pulls it out. Tier bands stay pinned under the
+column head as you scroll, so you always know which tier you are reading. Tiers
+belong to the view you cut them in — filter to RB and you are editing RB tiers,
+which is what the scope on the Tiers group is telling you.
 
 **Compare** — every source as a column, sorted by disagreement. Green means a
 site ranks him later than you (you can wait), red means they are higher (you

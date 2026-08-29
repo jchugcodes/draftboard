@@ -174,4 +174,75 @@
     width: min(100%, clamp(1120px, 62vw, 1560px));
     margin-inline: auto;
   }
+
+  /* Full density is fourteen columns and wants a little more room than the
+     four-column draft-day view, but only a little: the names were wrapping
+     because the position was printed three times per row and a source header
+     could set a 117px column for one-digit values, not because the measure was
+     wrong. Both are fixed, so this stays close to .shell — enough slack for a
+     board carrying six or eight imported sources, not enough to strand the
+     name half a screen from its numbers. */
+  .shell-board {
+    width: min(100%, clamp(1120px, 68vw, 1560px));
+    margin-inline: auto;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Controls. The board's toolbar carries filters, lenses, tier tools and one
+   button that rewrites your whole order, and before these classes existed it
+   drew all of them the same way — same border, same size, same grey. Eighteen
+   identical controls in a wrapping row is not a toolbar, it is a pile.
+
+   Three weights, and every control picks one. .ctl is the default: a thing you
+   press. .ctl-on is that thing while it is doing something, and it always
+   borrows the accent so "a filter is on" reads from across the room. .ctl-quiet
+   is for controls that should be reachable without being seen — the overflow
+   menu, a close ✕ — and it only grows a border on hover.
+--------------------------------------------------------------------------- */
+@layer components {
+  .ctl {
+    @apply inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap border border-line
+           bg-panel px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-label
+           text-ink-muted transition-colors;
+  }
+  .ctl:hover:not(:disabled) { @apply border-ink text-ink; }
+  .ctl:disabled { @apply cursor-not-allowed opacity-40; }
+  .ctl-on { @apply border-accent bg-accent/10 text-accent; }
+  .ctl-on:hover:not(:disabled) { @apply border-accent text-accent; }
+  .ctl-quiet { @apply border-transparent bg-transparent text-ink-faint; }
+  .ctl-danger:hover:not(:disabled) { @apply border-behind text-behind; }
+
+  /* Text inputs and selects. Same box as a .ctl so a search field and the
+     button beside it share a baseline, but sentence case — you read what you
+     typed, you don't scan it as signage. */
+  .field {
+    @apply border border-line bg-panel px-2.5 py-1.5 text-[12px] text-ink
+           transition-colors placeholder:text-ink-ghost;
+  }
+  .field:hover { @apply border-line-strong; }
+
+  /* A segmented control: one border around the set, hairlines between, and the
+     chosen segment in the ink block the app already uses for "this one is
+     active". Position filters and the density switch are both this shape,
+     which is what makes them read as the same kind of question. */
+  .seg { @apply inline-flex shrink-0 divide-x divide-line overflow-hidden border border-line bg-panel; }
+  .seg > * {
+    @apply px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-label
+           text-ink-faint transition-colors;
+  }
+  .seg > *:hover:not([data-on="true"]) { @apply bg-band text-ink; }
+  .seg > [data-on="true"] { @apply bg-ink text-ink-invert; }
+
+  /* A named cluster of related tools, so "the tier controls" is one object in
+     the toolbar rather than three loose buttons that happen to sit together. */
+  .toolgroup {
+    @apply inline-flex shrink-0 items-center gap-1 border border-line
+           bg-panel-raised py-1 pl-2 pr-1;
+  }
+
+  /* Rows scrolled to by the keyboard have to clear the sticky toolbar and the
+     table head, or "select the next player" lands him underneath them. The
+     offset is measured at runtime and published as --stickyH on the board. */
+  .board-row { scroll-margin-top: var(--stickyH, 6rem); }
 }

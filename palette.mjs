@@ -51,35 +51,54 @@ const contrast = (a, b) => {
 };
 
 const SPEC = {
+  // Cream and evergreen, on paper.
+  //
+  // The ground is cream rather than white — a real cream, with enough chroma to
+  // read as a colour rather than as white that got dirty — and the ink is a
+  // deep evergreen rather than a warm black. Those two together are the whole
+  // colourway: everything structural (rules, muted text, the rank pill) is a
+  // step along the same green, so the page reads as printed on stock rather
+  // than rendered on a screen.
+  //
+  // It also means three greens have to coexist: evergreen ink at almost no
+  // chroma, a saturated "ahead" green, and RB. RB moved to teal to keep out of
+  // the way, and the tags walked around the wheel behind it.
   light: {
-    ground: [0.970, 0.007, 92], "ground-sunken": [0.944, 0.010, 92], panel: [0.996, 0.002, 92],
-    "panel-raised": [0.977, 0.006, 92], band: [0.930, 0.012, 92],
-    ink: [0.235, 0.014, 75], "ink-muted": [0.470, 0.013, 75], "ink-faint": [0.560, 0.011, 75],
-    "ink-ghost": [0.760, 0.009, 75], "ink-invert": [0.995, 0.002, 92],
-    line: [0.886, 0.010, 92], "line-strong": [0.735, 0.013, 92],
-    theme: [0.870, 0.185, 122], "on-theme": [0.235, 0.014, 75],
-    "theme-ink": [0.395, 0.105, 128], "band-tier": [0.945, 0.055, 118],
-    accent: [0.535, 0.150, 128], focus: [0.520, 0.170, 128],
-    ahead: [0.520, 0.145, 148], behind: [0.520, 0.190, 25], warn: [0.545, 0.145, 75],
-    "pos-qb": [0.520, 0.185, 18], "pos-rb": [0.520, 0.125, 158], "pos-wr": [0.520, 0.160, 252],
-    "pos-te": [0.545, 0.135, 62], "pos-k": [0.520, 0.180, 305], "pos-dst": [0.540, 0.020, 250],
-    "tag-favorite": [0.560, 0.115, 85], "tag-sleeper": [0.560, 0.130, 288],
-    "tag-reliable": [0.540, 0.090, 195], "tag-avoid": [0.548, 0.155, 15], "tag-handcuff": [0.552, 0.130, 42],
+    ground: [0.962, 0.022, 88], "ground-sunken": [0.932, 0.026, 87], panel: [0.985, 0.014, 88],
+    "panel-raised": [0.968, 0.020, 88], band: [0.916, 0.028, 86],
+    ink: [0.240, 0.038, 158], "ink-muted": [0.448, 0.030, 158], "ink-faint": [0.548, 0.024, 158],
+    "ink-ghost": [0.722, 0.020, 150], "ink-invert": [0.985, 0.014, 88],
+    line: [0.872, 0.022, 130], "line-strong": [0.700, 0.028, 145],
+    theme: [0.865, 0.195, 113], "on-theme": [0.240, 0.038, 158],
+    "theme-ink": [0.400, 0.100, 125], "band-tier": [0.930, 0.072, 110],
+    accent: [0.470, 0.095, 150], focus: [0.500, 0.130, 130],
+    ahead: [0.505, 0.160, 148], behind: [0.505, 0.190, 28], warn: [0.545, 0.150, 78],
+    "pos-qb": [0.515, 0.185, 20], "pos-rb": [0.520, 0.115, 190], "pos-wr": [0.520, 0.160, 252],
+    "pos-te": [0.545, 0.140, 68], "pos-k": [0.520, 0.180, 315], "pos-dst": [0.545, 0.020, 200],
+    "tag-favorite": [0.545, 0.120, 92], "tag-sleeper": [0.560, 0.135, 292],
+    "tag-reliable": [0.535, 0.095, 218], "tag-avoid": [0.520, 0.160, 2], "tag-handcuff": [0.552, 0.135, 45],
   },
+  // Carbon, and one hi-vis stripe.
+  //
+  // Not the same design with the lights off: a pit-lane palette. The ground is
+  // near-black with the barest cool cast, the surfaces step up in clear stages
+  // rather than the four-value nothing the old dark theme had, and the accent
+  // is allowed to be genuinely loud because on carbon it is the only thing
+  // making noise.
   dark: {
-    ground: [0.185, 0.008, 240], "ground-sunken": [0.140, 0.008, 240], panel: [0.235, 0.009, 240],
-    "panel-raised": [0.285, 0.010, 240], band: [0.320, 0.012, 240],
-    ink: [0.960, 0.004, 92], "ink-muted": [0.740, 0.010, 240], "ink-faint": [0.648, 0.012, 240],
-    "ink-ghost": [0.475, 0.012, 240], "ink-invert": [0.185, 0.008, 240],
-    line: [0.335, 0.012, 240], "line-strong": [0.460, 0.014, 240],
-    theme: [0.880, 0.190, 122], "on-theme": [0.200, 0.020, 110],
-    "theme-ink": [0.860, 0.175, 124], "band-tier": [0.320, 0.045, 130],
-    accent: [0.845, 0.170, 126], focus: [0.880, 0.180, 124],
-    ahead: [0.800, 0.150, 152], behind: [0.720, 0.165, 25], warn: [0.830, 0.145, 85],
-    "pos-qb": [0.720, 0.160, 18], "pos-rb": [0.775, 0.115, 158], "pos-wr": [0.740, 0.130, 252],
-    "pos-te": [0.800, 0.130, 62], "pos-k": [0.740, 0.150, 305], "pos-dst": [0.700, 0.020, 250],
-    "tag-favorite": [0.845, 0.135, 85], "tag-sleeper": [0.760, 0.140, 288],
-    "tag-reliable": [0.800, 0.100, 195], "tag-avoid": [0.740, 0.150, 15], "tag-handcuff": [0.790, 0.140, 42],
+    ground: [0.145, 0.006, 250], "ground-sunken": [0.105, 0.005, 250], panel: [0.195, 0.007, 250],
+    "panel-raised": [0.245, 0.008, 250], band: [0.285, 0.010, 250],
+    ink: [0.965, 0.004, 100], "ink-muted": [0.735, 0.008, 240], "ink-faint": [0.645, 0.010, 240],
+    "ink-ghost": [0.470, 0.010, 240], "ink-invert": [0.145, 0.006, 250],
+    line: [0.300, 0.010, 250], "line-strong": [0.440, 0.013, 250],
+    theme: [0.885, 0.200, 113], "on-theme": [0.170, 0.030, 120],
+    "theme-ink": [0.870, 0.185, 115], "band-tier": [0.292, 0.058, 118],
+    accent: [0.860, 0.180, 115], focus: [0.885, 0.190, 113],
+    ahead: [0.805, 0.155, 152], behind: [0.720, 0.170, 28], warn: [0.835, 0.150, 88],
+    "pos-qb": [0.720, 0.165, 20], "pos-rb": [0.780, 0.105, 190], "pos-wr": [0.745, 0.135, 252],
+    "pos-te": [0.805, 0.135, 68], "pos-k": [0.745, 0.155, 315], "pos-dst": [0.700, 0.020, 200],
+    "tag-favorite": [0.850, 0.140, 92], "tag-sleeper": [0.765, 0.145, 292],
+    "tag-reliable": [0.790, 0.105, 218], "tag-avoid": [0.735, 0.155, 2], "tag-handcuff": [0.795, 0.145, 45],
   },
 };
 

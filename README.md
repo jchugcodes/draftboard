@@ -71,18 +71,37 @@ bar — 4.5:1 for anything carrying words, 3.0:1 for the position rails. Three
 colours were a tenth under when the palette was first drawn and would never have
 been caught by looking at them.
 
-**The signature is hi-vis lime**, and it is the one hue nothing else in the app
-uses. It works the way a safety vest or a tennis ball works: a bright fill you
-set near-black text on, which means the *same* fill reads in both themes rather
-than needing a light variant and a dark one. Four tokens carry it — `--theme`
-is the fill, `--on-theme` the ink that sits on it, `--theme-ink` the version
-dark enough to set as text on a pale ground (and bright enough on a dark one),
-and `--band-tier` the opaque tint behind a tier. Opaque because the tier band is
-sticky, and a translucent one would show the rows sliding underneath it.
+**Light is cream and evergreen, on paper.** The ground is a real cream — enough
+chroma to read as a colour rather than as white that got dirty — and the ink is
+a deep evergreen rather than a warm black. Those two are the whole colourway:
+everything structural walks the same green, from the rules to the muted text to
+the rank pill, which is evergreen with cream set on it. The page reads as
+printed on stock rather than rendered on a screen.
 
-The grounds have a temperature story: warm paper in light, cool graphite in
-dark, so the lime sits warm against the dark and sharp against the light. Ink is
-never `#000` — pure black on paper is a hole in the page.
+**Dark is carbon**, not the same design with the lights off. Near-black with the
+barest cool cast, surfaces stepping up in clear stages rather than the four-value
+nothing the first dark theme had, and the accent allowed to be genuinely loud
+because on carbon it is the only thing making noise.
+
+**The signature is a hi-vis yellow-green** — the greener side of yellow — and it
+is the one hue nothing else in the app uses. It works the way a safety vest or a
+pit board works: a bright fill you set dark text on, which means the *same* fill
+reads in both themes rather than needing a light variant and a dark one. Four
+tokens carry it: `--theme` is the fill, `--on-theme` the ink that sits on it
+(evergreen in light, near-black in dark), `--theme-ink` the version dark enough
+to set as text on cream and bright enough on carbon, and `--band-tier` the
+opaque tint behind a tier. Opaque because the tier band is sticky, and a
+translucent one would show the rows sliding underneath it.
+
+An evergreen ink means three greens have to coexist: the ink at almost no
+chroma, a saturated `ahead`, and RB. RB moved to teal to keep out of their way,
+and the tags walked around the wheel behind it. Ink is never `#000` — pure black
+on cream is a hole in the page.
+
+The browser's `theme-color` is read back out of `--ground` at runtime rather
+than repeated as a hex in JS. A second copy of a generated value is a copy that
+goes stale the first time anyone regenerates it, which is exactly what happened
+the first time the grounds changed.
 
 ## Design rules
 

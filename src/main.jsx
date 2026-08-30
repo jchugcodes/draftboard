@@ -33,8 +33,13 @@ function App() {
   // the installed splash agree with the ground underneath them.
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
+    // Read the ground back out of the token layer rather than repeating it as a
+    // hex here. The palette is generated, so a second copy of its values in JS
+    // is a copy that goes stale the first time anyone regenerates it — which is
+    // exactly what happened when the grounds became cream and carbon.
     const meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute("content", theme === "dark" ? "#09090b" : "#ffffff");
+    const ground = getComputedStyle(document.documentElement).getPropertyValue("--ground").trim();
+    if (meta && ground) meta.setAttribute("content", `rgb(${ground})`);
   }, [theme]);
 
   return (

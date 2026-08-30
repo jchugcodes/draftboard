@@ -37,7 +37,7 @@ const text = window.document.body.textContent;
 let fails = 0;
 const must = ["Justin Jefferson","FantasyPros","Yahoo","ESPN","Y vs mkt","VOR","is more than 7 days old"];
 // Tiers render as a zero-padded ordinal in an ink block beside a TIER label.
-const tierMarks = () => [...window.document.querySelectorAll("span")].filter((n) => /^\d\d$/.test(n.textContent.trim()) && n.className.includes("bg-ink"));
+const tierMarks = () => [...window.document.querySelectorAll("span")].filter((n) => /^\d\d$/.test(n.textContent.trim()) && n.className.includes("bg-theme"));
 if (tierMarks().length < 2) { console.log("expected at least two tier marks, got", tierMarks().map((n)=>n.textContent)); fails++; }
 if (!text.includes("Tier")) { console.log("MISSING: Tier label"); fails++; }
 for (const m of must) if (!text.includes(m)) { console.log("MISSING:", m); fails++; }
@@ -108,14 +108,19 @@ else if (!tierCells.every((td) => td.style.top !== "")) {
   // second style attribute clobbered the first, it came back as "".
   console.log("tier band lost its sticky offset:", tierCells.map((t) => JSON.stringify(t.style.top))); fails++;
 }
-// Depth is drawn with size, so the bands must not all be the same size.
-const tierBlockSizes = new Set(
-  [...window.document.querySelectorAll("span[class*=lean][class*=bg-ink]")]
-    .filter((n) => /^\d\d$/.test(n.textContent.trim()))
-    .map((n) => (n.className.match(/text-\[[\d.]+px\]/) || [""])[0])
-);
-if (tierBlockSizes.size < 2) {
-  console.log("tier blocks are all one size — depth is not being drawn:", [...tierBlockSizes]); fails++;
+// Depth is drawn with size, so tier blocks must not all be one size. Scoped to
+// the table and to bg-theme: an earlier version of this matched bg-ink, which
+// caught the rank pills instead and passed green because the desktop and mobile
+// rank pills happen to differ by a pixel.
+const tierBlocks = [...window.document.querySelectorAll("table span[class*=lean][class*=bg-theme]")]
+  .filter((n) => /^\d\d$/.test(n.textContent.trim()));
+if (tierBlocks.length < 2) {
+  console.log("expected at least two tier blocks in the table, got", tierBlocks.length); fails++;
+} else {
+  const sizes = new Set(tierBlocks.map((n) => (n.className.match(/text-\[[\d.]+px\]/) || [""])[0]));
+  if (sizes.size < 2) {
+    console.log("tier blocks are all one size — depth is not being drawn:", [...sizes]); fails++;
+  }
 }
 
 // ---- the redesigned command bar -------------------------------------------

@@ -73,7 +73,7 @@ function CompactBar({ scale, sources, values, myRank, consensus, width }) {
   return (
     <span title={title} className="relative inline-block h-1.5 rounded-full bg-band align-middle"
       style={{ width, backgroundImage: layers.join(",") }}>
-      <span className="absolute -top-[3px] h-[12px] w-[3px] -translate-x-1/2 rounded-full bg-accent"
+      <span className="absolute -top-[3px] h-[12px] w-[3px] -translate-x-1/2 rounded-full bg-theme-ink"
         style={{ left: `${scale.at(myRank)}%` }} />
     </span>
   );
@@ -100,7 +100,7 @@ function FullBar({ scale, sources, myRank }) {
   // eye can take in without tracking across.
   return (
     <div className="max-w-xl space-y-1.5">
-      <Row label="My rank" value={myRank} delta={null} tone="font-semibold text-accent" dot="bg-accent ring-2 ring-accent/30" />
+      <Row label="My rank" value={myRank} delta={null} tone="font-semibold text-theme-ink" dot="bg-theme-ink ring-2 ring-theme/40" />
       {sources.map((s) => (
         <Row key={s.key} label={s.label} value={s.value} delta={s.value - myRank} stale={s.stale}
           tone="text-ink-muted" dot={dotFor(s.type)} title={`${s.label} · ${String(s.type).toUpperCase()}`} />

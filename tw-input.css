@@ -37,58 +37,61 @@
    forcing a hand-written token for every translucent variant.
 --------------------------------------------------------------------------- */
 :root {
-  /* ground: page, sunken wells, raised panels, the band behind a tier header.
-  
-     --ground and --panel were both pure white, which is why the board read as
-     a spreadsheet: with the page and the sheet the same colour there is no
-     figure and no ground, only rules floating on nothing. The page is paper
-     now — a warm grey a couple of steps down — and the board is the white
-     sheet lying on it. That one separation is what lets the rules come out,
-     because the edge of the sheet does the work they were doing. */
-  --ground: 246 245 242;
-  --ground-sunken: 238 237 233;
-  --panel: 255 255 255;
-  --panel-raised: 250 249 246;
-  --band: 240 238 233;
+  /* ground: page, sunken wells, raised panels, the band behind a tier header */
+  --ground: 247 245 240;
+  --ground-sunken: 239 236 229;
+  --panel: 254 254 252;
+  --panel-raised: 249 247 243;
+  --band: 235 232 223;
 
-  /* ink: text, in descending confidence. Not #000 — pure black on paper is a
-     hole in the page, and at 11px it blooms. */
-  --ink: 24 23 22;
-  --ink-muted: 91 88 84;
-  --ink-faint: 130 126 120;
-  --ink-ghost: 172 168 160;
-  --ink-invert: 255 255 255;
+  /* ink: text, in descending confidence. Warm-black rather than #000 — pure black on paper is a hole in the page */
+  --ink: 34 29 23;
+  --ink-muted: 95 90 83;
+  --ink-faint: 120 116 109;
+  --ink-ghost: 180 176 171;
+  --ink-invert: 254 253 252;
 
-  /* structure. Softer than the old 215 grey because there are far fewer of
-     them now and each one has to be worth drawing. */
-  --line: 226 223 216;
-  --line-strong: 178 174 165;
+  /* structure */
+  --line: 220 217 210;
+  --line-strong: 172 169 160;
 
-  /* accent: mine, and the focus state. Pure blue is the reference's own. */
-  --accent: 0 0 255;
-  --focus: 66 53 243;
+  /* the signature. Hi-vis lime: a fill you set dark text on, the way a safety
+     vest or a tennis ball works, and the one hue nothing else in the app uses.
+     --theme is the fill, --on-theme the ink that sits on it (near-black in
+     BOTH themes, because the fill stays bright in both), --theme-ink the
+     version dark enough to set as text on a pale ground, and --band-tier the
+     opaque tint the tier band is painted in — opaque because it is sticky and
+     a translucent band would show the rows sliding underneath it */
+  --theme: 192 230 70;
+  --on-theme: 34 29 23;
+  --theme-ink: 54 80 0;
+  --band-tier: 233 243 201;
 
-  /* verdicts. Direction, not decoration: ahead of the room vs behind it. */
-  --ahead: 4 120 87;
-  --behind: 190 18 60;
-  --warn: 180 83 9;
+  /* mine, and the focus state */
+  --accent: 85 123 0;
+  --focus: 82 119 0;
 
-  /* positions */
-  --pos-qb: 190 18 60;
-  --pos-rb: 4 120 87;
-  --pos-wr: 29 78 216;
-  --pos-te: 180 83 9;
-  --pos-k: 109 40 217;
-  --pos-dst: 82 82 91;
+  /* verdicts. Direction, not decoration: ahead of the room vs behind it */
+  --ahead: 15 126 51;
+  --behind: 190 34 42;
+  --warn: 151 101 0;
+
+  /* positions, held at one lightness so no position outranks another */
+  --pos-qb: 188 36 62;
+  --pos-rb: 2 125 77;
+  --pos-wr: 4 106 190;
+  --pos-te: 162 92 1;
+  --pos-k: 130 68 186;
+  --pos-dst: 102 112 122;
 
   /* tags: what I think of a player, kept apart from what he is (position) and
-     from where the market has him (verdict), so the three never blur */
-  --tag-favorite: 161 98 7;
-  --tag-sleeper: 109 40 217;
-  --tag-reliable: 15 118 110;
-  --tag-avoid: 190 18 60;
-  --tag-handcuff: 194 65 12;
-
+     from where the market has him (verdict). A step quieter than the positions
+     on purpose — an opinion should not outrank a fact */
+  --tag-favorite: 147 110 6;
+  --tag-sleeper: 114 102 188;
+  --tag-reliable: 11 127 127;
+  --tag-avoid: 185 65 83;
+  --tag-handcuff: 175 84 46;
   /* the reference's signature: a nav link whose sides taper inward */
   --taper: 3px;
 
@@ -105,45 +108,61 @@
 }
 
 :root[data-theme="dark"] {
-  /* Same idea inverted: the page is the darkest surface and the board sits
-     above it. It used to be the other way round — panel 19 on ground 9 is a
-     4-value separation nobody can see, and --ground-sunken was pure black,
-     which made wells look like holes cut in the app. */
-  --ground: 14 14 16;
-  --ground-sunken: 8 8 10;
-  --panel: 26 26 30;
-  --panel-raised: 34 34 39;
-  --band: 40 40 46;
+  /* ground: page, sunken wells, raised panels, the band behind a tier header */
+  --ground: 16 19 22;
+  --ground-sunken: 7 10 12;
+  --panel: 26 31 34;
+  --panel-raised: 38 43 47;
+  --band: 45 52 56;
 
-  --ink: 244 244 245;
-  --ink-muted: 166 166 175;
-  --ink-faint: 132 132 142;
-  --ink-ghost: 96 96 105;
-  --ink-invert: 14 14 16;
+  /* ink: text, in descending confidence. Warm-black rather than #000 — pure black on paper is a hole in the page */
+  --ink: 243 242 239;
+  --ink-muted: 165 172 177;
+  --ink-faint: 136 144 149;
+  --ink-ghost: 86 93 98;
+  --ink-invert: 16 19 22;
 
-  --line: 48 48 55;
-  --line-strong: 74 74 84;
+  /* structure */
+  --line: 49 56 60;
+  --line-strong: 81 89 95;
 
-  /* pure blue is unreadable on black; the focus indigo carries the role */
-  --accent: 99 102 241;
-  --focus: 129 140 248;
+  /* the signature. Hi-vis lime: a fill you set dark text on, the way a safety
+     vest or a tennis ball works, and the one hue nothing else in the app uses.
+     --theme is the fill, --on-theme the ink that sits on it (near-black in
+     BOTH themes, because the fill stays bright in both), --theme-ink the
+     version dark enough to set as text on a pale ground, and --band-tier the
+     opaque tint the tier band is painted in — opaque because it is sticky and
+     a translucent band would show the rows sliding underneath it */
+  --theme: 195 234 67;
+  --on-theme: 22 23 12;
+  --theme-ink: 185 228 84;
+  --band-tier: 43 55 31;
 
-  --ahead: 52 211 153;
-  --behind: 251 113 133;
-  --warn: 251 191 36;
+  /* mine, and the focus state */
+  --accent: 177 223 89;
+  --focus: 191 235 86;
 
-  --pos-qb: 251 113 133;
-  --pos-rb: 52 211 153;
-  --pos-wr: 96 165 250;
-  --pos-te: 251 191 36;
-  --pos-k: 167 139 250;
-  --pos-dst: 161 161 170;
+  /* verdicts. Direction, not decoration: ahead of the room vs behind it */
+  --ahead: 105 217 141;
+  --behind: 251 117 110;
+  --warn: 242 191 71;
 
-  --tag-favorite: 250 204 21;
-  --tag-sleeper: 167 139 250;
-  --tag-reliable: 45 212 191;
-  --tag-avoid: 251 113 133;
-  --tag-handcuff: 251 146 60;
+  /* positions, held at one lightness so no position outranks another */
+  --pos-qb: 248 118 126;
+  --pos-rb: 113 204 154;
+  --pos-wr: 107 175 250;
+  --pos-te: 249 170 96;
+  --pos-k: 193 144 246;
+  --pos-dst: 149 160 171;
+
+  /* tags: what I think of a player, kept apart from what he is (position) and
+     from where the market has him (verdict). A step quieter than the positions
+     on purpose — an opinion should not outrank a fact */
+  --tag-favorite: 244 197 90;
+  --tag-sleeper: 173 163 255;
+  --tag-reliable: 101 210 210;
+  --tag-avoid: 250 127 140;
+  --tag-handcuff: 254 158 121;
 }
 
 @layer base {

@@ -14,7 +14,8 @@ module.exports = {
       colors: {
         ground: { DEFAULT: t("ground"), sunken: t("ground-sunken") },
         panel: { DEFAULT: t("panel"), raised: t("panel-raised") },
-        band: t("band"),
+        band: { DEFAULT: t("band"), tier: t("band-tier") },
+        theme: { DEFAULT: t("theme"), ink: t("theme-ink"), on: t("on-theme") },
         ink: {
           DEFAULT: t("ink"),
           muted: t("ink-muted"),

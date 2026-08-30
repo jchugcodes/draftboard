@@ -37,12 +37,17 @@ function sourceOpinions(sources, id) {
 // Five steps and then a floor: past tier six the differences stop being legible
 // and another step would only make the text small.
 const TIER_DEPTH = [
-  { block: "px-3.5 py-2 text-[17px] -my-2",     name: "text-[16px]",   band: "py-1",   ink: 1,    rule: 3 },
-  { block: "px-3 py-1.5 text-[14px] -my-1.5",   name: "text-[14px]",   band: "py-1",   ink: 0.9,  rule: 2 },
-  { block: "px-2.5 py-1 text-[12px] -my-1",     name: "text-[12.5px]", band: "py-0.5", ink: 0.8,  rule: 1 },
-  { block: "px-2 py-0.5 text-[10.5px] -my-0.5", name: "text-[11px]",   band: "py-0.5", ink: 0.7,  rule: 1 },
-  { block: "px-2 py-0.5 text-[9.5px]",          name: "text-[10px]",   band: "py-0",   ink: 0.62, rule: 1 },
+  { block: "px-3.5 py-2 text-[17px] -my-2",     name: "text-[16px]",   band: "py-1",   ink: 1,    rule: 3, tint: 100 },
+  { block: "px-3 py-1.5 text-[14px] -my-1.5",   name: "text-[14px]",   band: "py-1",   ink: 0.9,  rule: 2, tint: 80 },
+  { block: "px-2.5 py-1 text-[12px] -my-1",     name: "text-[12.5px]", band: "py-0.5", ink: 0.8,  rule: 1, tint: 62 },
+  { block: "px-2 py-0.5 text-[10.5px] -my-0.5", name: "text-[11px]",   band: "py-0.5", ink: 0.7,  rule: 1, tint: 46 },
+  { block: "px-2 py-0.5 text-[9.5px]",          name: "text-[10px]",   band: "py-0",   ink: 0.62, rule: 1, tint: 34 },
 ];
+// The band's tint recedes with the block. Mixed to an opaque colour rather than
+// set as an alpha, because the band is sticky and a translucent one would show
+// the rows sliding along underneath it. bg-band-tier stays on the element as
+// the fallback for anything that cannot do color-mix.
+const tierBand = (d) => `color-mix(in srgb, rgb(var(--band-tier)) ${d.tint}%, rgb(var(--panel)))`;
 const tierDepth = (tier) => TIER_DEPTH[Math.min(tier - 1, TIER_DEPTH.length - 1)];
 
 function tierOfIndex(i, breaks) {
@@ -1211,22 +1216,22 @@ export default function Board() {
                             hard rule with the tier number set in the ink block
                             — the same weight the app gives an active tab. */}
                         <td colSpan={colCount}
-                          className={`sticky z-[9] border-y border-line bg-band px-2 ${d.band}`}
-                          style={{ top: toolbarH + theadH, borderTopWidth: d.rule }}>
+                          className={`sticky z-[9] border-y border-b-line border-t-theme bg-band-tier px-2 ${d.band}`}
+                          style={{ top: toolbarH + theadH, borderTopWidth: d.rule, backgroundColor: tierBand(d) }}>
                           <div className="flex items-center gap-2.5">
                             {/* -my-1 lets the block stand proud of its own band.
                                 A mark that breaks the edge of the thing holding
                                 it is the cheapest depth cue there is, and it
                                 costs no height because the band closes around it. */}
                             <span style={{ opacity: d.ink }}
-                              className={`num lean shrink-0 bg-ink font-bold tracking-[0.06em] text-ink-invert ${d.block}`}>
+                              className={`num lean shrink-0 bg-theme font-bold tracking-[0.06em] text-theme-on ${d.block}`}>
                               <span>{String(tier).padStart(2, "0")}</span>
                             </span>
                             <input value={tierNames[tier] ?? ""} placeholder="Name this tier"
                               draggable={false} onDragStart={(e) => e.preventDefault()}
                               onClick={(e) => e.stopPropagation()}
                               onChange={(e) => dispatch({ type: "SET_TIER_NAME", scope: tierScope, tier, name: e.target.value })}
-                              className={`w-56 rounded-[--r-sm] border border-transparent bg-transparent px-1.5 py-0.5 font-bold normal-case tracking-[-0.015em] text-ink placeholder:font-normal placeholder:text-ink-ghost hover:border-line focus:border-accent focus:bg-panel focus:outline-none ${d.name}`} />
+                              className={`w-56 rounded-[--r-sm] border border-transparent bg-transparent px-1.5 py-0.5 font-bold normal-case tracking-[-0.015em] text-theme-ink placeholder:font-normal placeholder:text-theme-ink/45 hover:border-theme focus:border-theme focus:bg-panel focus:outline-none ${d.name}`} />
                             {breakIdx !== undefined && (
                               <button draggable={false} title="Pull this divider out (merges into the tier above)"
                                 onClick={(e) => { e.stopPropagation(); dispatch({ type: "TOGGLE_TIER_BREAK", scope: tierScope, index: breakIdx }); }}
@@ -1341,17 +1346,17 @@ export default function Board() {
             return (
               <React.Fragment key={r.id}>
                 {header && (
-                  <div className={`sticky z-10 border-y border-line bg-band px-3 ${d.band}`}
-                    style={{ top: toolbarH, borderTopWidth: d.rule }}>
+                  <div className={`sticky z-10 border-y border-b-line border-t-theme bg-band-tier px-3 ${d.band}`}
+                    style={{ top: toolbarH, borderTopWidth: d.rule, backgroundColor: tierBand(d) }}>
                     <div className="flex items-center justify-between gap-2">
                       <span className="flex min-w-0 items-center gap-2">
                         <span style={{ opacity: d.ink }}
-                          className={`num lean shrink-0 bg-ink font-bold tracking-[0.06em] text-ink-invert ${d.block}`}>
+                          className={`num lean shrink-0 bg-theme font-bold tracking-[0.06em] text-theme-on ${d.block}`}>
                           <span>{String(tier).padStart(2, "0")}</span>
                         </span>
                         {tierNames[tier]
-                          ? <span className={`truncate font-bold tracking-[-0.015em] text-ink ${d.name}`}>{tierNames[tier]}</span>
-                          : <span className="label shrink-0 text-ink-ghost">Tier</span>}
+                          ? <span className={`truncate font-bold tracking-[-0.015em] text-theme-ink ${d.name}`}>{tierNames[tier]}</span>
+                          : <span className="label shrink-0 text-theme-ink/60">Tier</span>}
                       </span>
                       {breakIdx !== undefined && (
                         <button title="Delete this tier break"

@@ -47,6 +47,43 @@ timestamp locally), so installed clients pick up every deploy on their own —
 - `dist/` — build output. Committed.
 - `gen-icons.mjs` — regenerates `public/icons/*.png`. Run manually.
 
+## Colour
+
+The palette is source, not ninety hex values: `palette.mjs` declares every
+colour in OKLCH and derives the sRGB tokens.
+
+```bash
+npm run palette              # audit every colour's contrast on both grounds
+node palette.mjs --write     # regenerate the token blocks in tw-input.css
+```
+
+Hex means picking by eye, and the eye is not uniform — two swatches at the same
+"500" in a stock ramp can differ visibly in weight, and stepping a hue 30° in
+HSL does not step it 30° to a person. OKLCH is perceptual, so holding lightness
+constant across the six position colours actually holds their *apparent* weight
+constant; they are one family rather than six colours that happen to sit near
+each other. Tags are held a step quieter than positions on purpose: an opinion
+should not outrank a fact.
+
+The audit is the part that earns its keep. It prints every colour's contrast
+against the ground it actually sits on and exits non-zero if anything is under
+bar — 4.5:1 for anything carrying words, 3.0:1 for the position rails. Three
+colours were a tenth under when the palette was first drawn and would never have
+been caught by looking at them.
+
+**The signature is hi-vis lime**, and it is the one hue nothing else in the app
+uses. It works the way a safety vest or a tennis ball works: a bright fill you
+set near-black text on, which means the *same* fill reads in both themes rather
+than needing a light variant and a dark one. Four tokens carry it — `--theme`
+is the fill, `--on-theme` the ink that sits on it, `--theme-ink` the version
+dark enough to set as text on a pale ground (and bright enough on a dark one),
+and `--band-tier` the opaque tint behind a tier. Opaque because the tier band is
+sticky, and a translucent one would show the rows sliding underneath it.
+
+The grounds have a temperature story: warm paper in light, cool graphite in
+dark, so the lime sits warm against the dark and sharp against the light. Ink is
+never `#000` — pure black on paper is a hole in the page.
+
 ## Design rules
 
 Three rules, written down because each one was being broken in eight or nine
@@ -69,12 +106,18 @@ counter-skewed back upright and therefore has to be an element, not a bare text
 node. Corners run on three radii and no more (`--r-sm/md/lg`), so a button and
 the sheet it sits on are the same family at different sizes.
 
+**Tiers wear the theme colour.** The number block is a lime fill with near-black
+on it, the band is a lime tint, the rule above it is lime, and the tier's name is
+`--theme-ink`. It is the loudest thing on the board, which is right: a cliff in
+value is the most important fact it has to tell you.
+
 **Tiers are drawn as depth, and depth is size.** A cliff in value is the most
 important thing on the board and it was being said by a thin grey strip. Three
 things now step together down `TIER_DEPTH`, and none of them is a shadow or a
 gradient: the tier block gets smaller, it stands less proud of its own band, and
-the rule above the band gets thinner. Near tiers read as heavier objects sitting
-closer to you; far ones as marks lying flat on the page. It costs *less* height
+the rule above the band gets thinner, and the band's tint fades toward the sheet.
+Near tiers read as heavier objects sitting closer to you; far ones as marks lying
+flat on the page. It costs *less* height
 than the old uniform band, not more — only the top tier is large, the rest shrink
 past where the band used to sit, and the block's negative margin lets it break
 the band's edge without adding to it. Five steps and then a floor: past tier six

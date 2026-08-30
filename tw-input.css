@@ -37,9 +37,6 @@
    forcing a hand-written token for every translucent variant.
 --------------------------------------------------------------------------- */
 :root {
-  /* GENERATED — edit palette.mjs and run `node palette.mjs --write`.
-     Every value below is derived from an OKLCH declaration and contrast-checked
-     against the ground it sits on; `npm run palette` prints the audit. */
   --ground: 249 242 226;
   --ground-sunken: 240 232 213;
   --panel: 254 250 240;
@@ -52,12 +49,12 @@
   --ink-invert: 254 250 240;
   --line: 208 216 201;
   --line-strong: 148 163 148;
-  --theme: 212 222 15;
-  --on-theme: 14 37 24;
-  --theme-ink: 59 80 1;
-  --band-tier: 234 237 181;
-  --accent: 45 105 61;
-  --focus: 74 113 10;
+  --theme: 24 82 52;
+  --on-theme: 250 246 231;
+  --theme-ink: 24 82 52;
+  --band-tier: 215 238 219;
+  --accent: 24 82 52;
+  --focus: 16 112 58;
   --ahead: 0 122 46;
   --behind: 185 29 26;
   --warn: 147 102 5;
@@ -87,12 +84,12 @@
   --ink-invert: 8 10 13;
   --line: 42 46 51;
   --line-strong: 77 83 90;
-  --theme: 219 229 11;
-  --on-theme: 14 17 3;
-  --theme-ink: 209 225 48;
-  --band-tier: 41 47 9;
-  --accent: 206 222 53;
-  --focus: 219 229 37;
+  --theme: 255 255 74;
+  --on-theme: 15 15 3;
+  --theme-ink: 255 255 74;
+  --band-tier: 50 47 2;
+  --accent: 255 255 74;
+  --focus: 255 255 74;
   --ahead: 102 219 140;
   --behind: 253 116 102;
   --warn: 241 194 64;
@@ -175,6 +172,12 @@
   }
   .label-lg { letter-spacing: 0.16em; font-size: 11px; }
 
+  /* Type that leans without a block behind it, on the same angle as .lean so
+     the two read as one idea rather than two slants. Used where a word is
+     doing the same job a number does in a pill — a tier's name beside its
+     number, the wordmark beside its mark. */
+  .italic-lean { transform: skewX(var(--lean)); transform-origin: left baseline; }
+
   /* The signature shape, replacing the taper.
   
      The taper clipped a triangle off each bottom corner, which gave the angle
@@ -188,7 +191,12 @@
     border-radius: var(--r-sm);
     transform: skewX(var(--lean));
   }
-  .lean > * { display: inline-block; transform: skewX(calc(-1 * var(--lean))); }
+  /* The content leans with the box. It used to be counter-skewed back upright,
+     which meant the shape was italic and the number inside it was not — a
+     racing number that had been straightened. One transform now carries both,
+     so a rank pill is a true oblique: mono digits sheared on the same angle as
+     the block holding them. inline-block only so the transform has a box. */
+  .lean > * { display: inline-block; }
 
   /* The measure. A board left to fill a 1900px window spreads fourteen columns
      so far apart that reading across one row becomes a head movement, and a

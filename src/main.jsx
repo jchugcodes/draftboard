@@ -53,7 +53,7 @@ function App() {
         <div className="shell flex items-center gap-1.5 px-2 py-2 md:gap-2 md:px-3">
           <div className="mr-0.5 flex shrink-0 select-none items-center gap-2 md:mr-1">
             <Mark />
-            <span className="hidden text-[13px] font-bold uppercase tracking-signage md:block">Draftboard</span>
+            <span className="italic-lean hidden text-[13px] font-bold uppercase tracking-signage md:block">Draftboard</span>
           </div>
           <nav className="flex flex-1 gap-0.5" aria-label="Sections">
             {TABS.map((t) => {

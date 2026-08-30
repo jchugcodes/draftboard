@@ -1231,7 +1231,7 @@ export default function Board() {
                               draggable={false} onDragStart={(e) => e.preventDefault()}
                               onClick={(e) => e.stopPropagation()}
                               onChange={(e) => dispatch({ type: "SET_TIER_NAME", scope: tierScope, tier, name: e.target.value })}
-                              className={`w-56 rounded-[--r-sm] border border-transparent bg-transparent px-1.5 py-0.5 font-bold normal-case tracking-[-0.015em] text-theme-ink placeholder:font-normal placeholder:text-theme-ink/45 hover:border-theme focus:border-theme focus:bg-panel focus:outline-none ${d.name}`} />
+                              className={`italic-lean w-56 rounded-[--r-sm] border border-transparent bg-transparent px-1.5 py-0.5 font-bold normal-case tracking-[-0.015em] text-theme-ink placeholder:font-normal placeholder:text-theme-ink/45 hover:border-theme focus:border-theme focus:bg-panel focus:outline-none ${d.name}`} />
                             {breakIdx !== undefined && (
                               <button draggable={false} title="Pull this divider out (merges into the tier above)"
                                 onClick={(e) => { e.stopPropagation(); dispatch({ type: "TOGGLE_TIER_BREAK", scope: tierScope, index: breakIdx }); }}
@@ -1355,7 +1355,7 @@ export default function Board() {
                           <span>{String(tier).padStart(2, "0")}</span>
                         </span>
                         {tierNames[tier]
-                          ? <span className={`truncate font-bold tracking-[-0.015em] text-theme-ink ${d.name}`}>{tierNames[tier]}</span>
+                          ? <span className={`italic-lean truncate font-bold tracking-[-0.015em] text-theme-ink ${d.name}`}>{tierNames[tier]}</span>
                           : <span className="label shrink-0 text-theme-ink/60">Tier</span>}
                       </span>
                       {breakIdx !== undefined && (

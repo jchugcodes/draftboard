@@ -83,15 +83,24 @@ barest cool cast, surfaces stepping up in clear stages rather than the four-valu
 nothing the first dark theme had, and the accent allowed to be genuinely loud
 because on carbon it is the only thing making noise.
 
-**The signature is a hi-vis yellow-green** — the greener side of yellow — and it
-is the one hue nothing else in the app uses. It works the way a safety vest or a
-pit board works: a bright fill you set dark text on, which means the *same* fill
-reads in both themes rather than needing a light variant and a dark one. Four
-tokens carry it: `--theme` is the fill, `--on-theme` the ink that sits on it
-(evergreen in light, near-black in dark), `--theme-ink` the version dark enough
-to set as text on cream and bright enough on carbon, and `--band-tier` the
-opaque tint behind a tier. Opaque because the tier band is sticky, and a
-translucent one would show the rows sliding underneath it.
+**Each theme has its own signature, and both are picked by hand.** Light is
+`#185234`, a deep evergreen — the tier block is that colour with cream set on
+it. Dark is `#ffff4a`, a pit-lane yellow — the same block inverted, near-black
+on electric. The fill is dark on cream and bright on carbon because that is what
+each ground wants; what stays constant is that it is the loudest thing on the
+page and nothing else uses it.
+
+Four tokens carry it: `--theme` is the fill, `--on-theme` the ink that sits on
+it, `--theme-ink` the version that works as *text* on the ground (evergreen on
+cream, yellow on carbon), and `--band-tier` the opaque tint behind a tier —
+opaque because the band is sticky, and a translucent one would show the rows
+sliding underneath it.
+
+Those two are written into `palette.mjs` as hex and used verbatim. Everything
+the system derives goes through OKLCH; a colour a person chose does not, because
+round-tripping `#185234` through a perceptual space and back moves it a channel
+or two, and the whole reason someone hands you a hex is that they mean that one.
+The audit still checks both alike.
 
 An evergreen ink means three greens have to coexist: the ink at almost no
 chroma, a saturated `ahead`, and RB. RB moved to teal to keep out of their way,
@@ -120,14 +129,18 @@ and forbade any radius, because a clip-path cuts straight through a
 border-radius. `.lean` gets the same motion from a transform instead: the box
 tilts nine degrees, the corners stay round, nothing is cut — a racing number,
 which is set on a slant because the slant reads as motion before you have read
-the number. Skew rotates glyphs too, so anything inside `.lean` is
-counter-skewed back upright and therefore has to be an element, not a bare text
-node. Corners run on three radii and no more (`--r-sm/md/lg`), so a button and
+the number. The content leans with it: an earlier version counter-skewed the
+text back upright, which meant the shape was italic and the number inside it was
+not, a racing number that had been straightened. One transform carries both now,
+so a rank pill is a true oblique. `.italic-lean` puts the same angle on type
+that has no block behind it — a tier's name beside its number, the wordmark
+beside its mark — so the two read as one idea rather than two slants. Corners run on three radii and no more (`--r-sm/md/lg`), so a button and
 the sheet it sits on are the same family at different sizes.
 
-**Tiers wear the theme colour.** The number block is a lime fill with near-black
-on it, the band is a lime tint, the rule above it is lime, and the tier's name is
-`--theme-ink`. It is the loudest thing on the board, which is right: a cliff in
+**Tiers wear the theme colour.** The number block is the theme fill with
+`--on-theme` on it, the band is a tint of it, the rule above it is the theme
+itself, and the tier's name is `--theme-ink`, leaning on the same angle as the
+number beside it. It is the loudest thing on the board, which is right: a cliff in
 value is the most important fact it has to tell you.
 
 **Tiers are drawn as depth, and depth is size.** A cliff in value is the most

@@ -41,6 +41,13 @@ function fit(L, C, H) {
   while (C > 0 && !inGamut(L, C, H)) C -= 0.002;
   return oklchToLinear(L, Math.max(C, 0), H).map((v) => Math.round(encode(v) * 255));
 }
+// A colour a person picked is used verbatim. Round-tripping "#185234" through
+// OKLCH and back would move it a channel or two, and the whole reason someone
+// hands you a hex is that they mean that one. Derived colours still go through
+// the perceptual space; chosen ones do not, and the audit checks both alike.
+const resolve = (v) => (typeof v === "string"
+  ? [1, 3, 5].map((i) => parseInt(v.slice(i, i + 2), 16))
+  : fit(...v));
 const luminance = ([r, g, b]) => {
   const f = (c) => (c /= 255) <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
   return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
@@ -69,9 +76,9 @@ const SPEC = {
     ink: [0.240, 0.038, 158], "ink-muted": [0.448, 0.030, 158], "ink-faint": [0.548, 0.024, 158],
     "ink-ghost": [0.722, 0.020, 150], "ink-invert": [0.985, 0.014, 88],
     line: [0.872, 0.022, 130], "line-strong": [0.700, 0.028, 145],
-    theme: [0.865, 0.195, 113], "on-theme": [0.240, 0.038, 158],
-    "theme-ink": [0.400, 0.100, 125], "band-tier": [0.930, 0.072, 110],
-    accent: [0.470, 0.095, 150], focus: [0.500, 0.130, 130],
+    theme: "#185234", "on-theme": [0.972, 0.020, 92],
+    "theme-ink": "#185234", "band-tier": [0.928, 0.036, 150],
+    accent: "#185234", focus: [0.480, 0.120, 152],
     ahead: [0.505, 0.160, 148], behind: [0.505, 0.190, 28], warn: [0.545, 0.150, 78],
     "pos-qb": [0.515, 0.185, 20], "pos-rb": [0.520, 0.115, 190], "pos-wr": [0.520, 0.160, 252],
     "pos-te": [0.545, 0.140, 68], "pos-k": [0.520, 0.180, 315], "pos-dst": [0.545, 0.020, 200],
@@ -91,9 +98,9 @@ const SPEC = {
     ink: [0.965, 0.004, 100], "ink-muted": [0.735, 0.008, 240], "ink-faint": [0.645, 0.010, 240],
     "ink-ghost": [0.470, 0.010, 240], "ink-invert": [0.145, 0.006, 250],
     line: [0.300, 0.010, 250], "line-strong": [0.440, 0.013, 250],
-    theme: [0.885, 0.200, 113], "on-theme": [0.170, 0.030, 120],
-    "theme-ink": [0.870, 0.185, 115], "band-tier": [0.292, 0.058, 118],
-    accent: [0.860, 0.180, 115], focus: [0.885, 0.190, 113],
+    theme: "#ffff4a", "on-theme": [0.165, 0.028, 110],
+    "theme-ink": "#ffff4a", "band-tier": [0.300, 0.062, 106],
+    accent: "#ffff4a", focus: "#ffff4a",
     ahead: [0.805, 0.155, 152], behind: [0.720, 0.170, 28], warn: [0.835, 0.150, 88],
     "pos-qb": [0.720, 0.165, 20], "pos-rb": [0.780, 0.105, 190], "pos-wr": [0.745, 0.135, 252],
     "pos-te": [0.805, 0.135, 68], "pos-k": [0.745, 0.155, 315], "pos-dst": [0.700, 0.020, 200],
@@ -112,7 +119,7 @@ const SKIP = new Set(["ground", "ground-sunken", "panel", "panel-raised", "band"
 let failed = 0;
 const built = {};
 for (const [theme, spec] of Object.entries(SPEC)) {
-  built[theme] = Object.fromEntries(Object.entries(spec).map(([k, v]) => [k, fit(...v)]));
+  built[theme] = Object.fromEntries(Object.entries(spec).map(([k, v]) => [k, resolve(v)]));
   const pal = built[theme], ground = pal.panel;
   console.log(`\n${theme} — contrast on --panel rgb(${ground})`);
   for (const k of Object.keys(spec)) {

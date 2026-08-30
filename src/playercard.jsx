@@ -16,7 +16,7 @@ const posStyle = (pos) => POS_STYLE[pos] || POS_STYLE.DST;
 
 // One value, one label, one line of context. Never two numbers in a cell.
 const Cell = ({ label, value, sub, tone = "text-ink", title, lead = false }) => (
-  <div title={title} className={`px-3 py-2 ${lead ? "bg-ink" : "border border-line bg-panel"}`}>
+  <div title={title} className={`rounded-[--r-md] px-3 py-2 ${lead ? "bg-ink" : "border border-line bg-panel"}`}>
     <div className={`label ${lead ? "text-ink-invert/60" : "text-ink-faint"}`}>{label}</div>
     <div className={`num mt-1 text-lg font-bold leading-none ${lead ? "text-ink-invert" : tone}`}>{value}</div>
     {sub && <div className={`mt-1 text-[10px] leading-tight ${lead ? "text-ink-invert/50" : "text-ink-faint"}`}>{sub}</div>}
@@ -34,7 +34,7 @@ const Meter = ({ label, score, read, tone = "bg-ink" }) => (
     </div>
     <div className="mt-1.5 flex gap-1.5">
       {[1, 2, 3, 4, 5].map((i) => (
-        <span key={i} className={`h-2 flex-1 rounded-full transition-colors ${i <= score ? tone : "bg-band"}`} />
+        <span key={i} className={`h-1.5 flex-1 rounded-full transition-colors ${i <= score ? tone : "bg-band"}`} />
       ))}
     </div>
   </div>
@@ -115,7 +115,7 @@ export default function PlayerCard({ row, sources, onOpenDetail, onClose }) {
     <div className="border-y border-ink bg-ground-sunken px-3 py-4 md:px-4">
       {/* identity */}
       <div className="flex flex-wrap items-start gap-3">
-        <span className={`taper mt-0.5 shrink-0 border px-2 py-1 text-[11px] font-bold uppercase tracking-label ${ps.chip}`}>
+        <span className={`mt-0.5 shrink-0 rounded-[--r-sm] border px-2 py-1 text-[11px] font-bold uppercase tracking-label ${ps.chip}`}>
           {p.pos}{row.posRank}
         </span>
         <div className="min-w-0 flex-1">
@@ -184,7 +184,7 @@ export default function PlayerCard({ row, sources, onOpenDetail, onClose }) {
               sub={row.vor > 0 ? "above a streamer" : "replaceable"} />
           </div>
           {mv?.series?.length > 1 && (
-            <div className="border border-line bg-panel px-3 py-2.5">
+            <div className="rounded-[--r-md] border border-line bg-panel px-3 py-2.5">
               <div className="flex items-baseline justify-between gap-2">
                 <span className="label text-ink-faint">Market drift</span>
                 <span className="text-[10px] text-ink-faint">up = drafted earlier</span>
@@ -214,25 +214,20 @@ export default function PlayerCard({ row, sources, onOpenDetail, onClose }) {
       <div className="mt-4 flex flex-wrap items-center gap-1.5">
         {TAGS.map((t) => (
           <button key={t.key} onClick={() => dispatch({ type: "TOGGLE_TAG", id: p.id, tag: t.key })}
-            className={`taper border px-2 py-1 text-[10px] font-semibold uppercase tracking-label transition-colors ${
-              p.tags.includes(t.key) ? t.cls : "border-line text-ink-faint hover:border-ink hover:text-ink"}`}>
+            className={`ctl ${p.tags.includes(t.key) ? t.cls : ""}`}>
             {t.label}
           </button>
         ))}
         <span className="grow" />
         <button onClick={() => onOpenDetail(p.id)}
-          className="taper border border-line px-2.5 py-1 text-[10px] font-semibold uppercase tracking-label text-ink-muted transition-colors hover:border-ink hover:text-ink">
-          Situation, stats &amp; news
-        </button>
+          className="ctl">Situation, stats &amp; news</button>
         <button onClick={onClose} aria-label="Collapse"
-          className="taper border border-line px-2.5 py-1 text-[10px] font-semibold uppercase tracking-label text-ink-faint transition-colors hover:border-ink hover:text-ink">
-          Close
-        </button>
+          className="ctl ctl-quiet">Close</button>
       </div>
 
       <textarea value={p.notes} rows={2} placeholder="Why do you have him here?"
         onChange={(e) => dispatch({ type: "SET_NOTES", id: p.id, notes: e.target.value })}
-        className="mt-2 w-full border border-line bg-panel px-2 py-1.5 text-[12px] placeholder:text-ink-ghost" />
+        className="mt-2 w-full rounded-[--r-sm] border border-line bg-panel px-2 py-1.5 text-[12px] placeholder:text-ink-ghost" />
     </div>
   );
 }

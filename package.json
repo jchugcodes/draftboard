@@ -9,7 +9,8 @@
     "adp": "node fetch-adp.mjs",
     "situation": "node fetch-situation.mjs",
     "test": "node test.mjs && node smoke.test.mjs && node smoke2.test.mjs",
-    "data": "node fetch-data.mjs"
+    "data": "node fetch-data.mjs",
+    "palette": "node palette.mjs"
   },
   "dependencies": {
     "react": "^18.3.1",

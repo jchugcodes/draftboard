@@ -36,6 +36,7 @@ timestamp locally), so installed clients pick up every deploy on their own —
 ## Layout
 
 - `src/` — app source. Entry is `src/main.jsx`.
+  - `icons.jsx` — every symbol in the app, on one grid. See *Design rules*.
   - `useDataSync.js` — every way the app pulls data, in one hook, so the Board's
     Refresh and Setup's per-source buttons drive the same code.
   - `rankbar.jsx` — where each source has a player on one shared scale. Renders
@@ -45,6 +46,142 @@ timestamp locally), so installed clients pick up every deploy on their own —
   Its paths are dist-relative (`./app.js`), so never serve `public/` directly.
 - `dist/` — build output. Committed.
 - `gen-icons.mjs` — regenerates `public/icons/*.png`. Run manually.
+
+## Colour
+
+The palette is source, not ninety hex values: `palette.mjs` declares every
+colour in OKLCH and derives the sRGB tokens.
+
+```bash
+npm run palette              # audit every colour's contrast on both grounds
+node palette.mjs --write     # regenerate the token blocks in tw-input.css
+```
+
+Hex means picking by eye, and the eye is not uniform — two swatches at the same
+"500" in a stock ramp can differ visibly in weight, and stepping a hue 30° in
+HSL does not step it 30° to a person. OKLCH is perceptual, so holding lightness
+constant across the six position colours actually holds their *apparent* weight
+constant; they are one family rather than six colours that happen to sit near
+each other. Tags are held a step quieter than positions on purpose: an opinion
+should not outrank a fact.
+
+The audit is the part that earns its keep. It prints every colour's contrast
+against the ground it actually sits on and exits non-zero if anything is under
+bar — 4.5:1 for anything carrying words, 3.0:1 for the position rails. Three
+colours were a tenth under when the palette was first drawn and would never have
+been caught by looking at them.
+
+**Light is cream and evergreen, on paper.** The ground is a real cream — enough
+chroma to read as a colour rather than as white that got dirty — and the ink is
+a deep evergreen rather than a warm black. Those two are the whole colourway:
+everything structural walks the same green, from the rules to the muted text to
+the rank pill, which is evergreen with cream set on it. The page reads as
+printed on stock rather than rendered on a screen.
+
+**Dark is carbon**, not the same design with the lights off. Near-black with the
+barest cool cast, surfaces stepping up in clear stages rather than the four-value
+nothing the first dark theme had, and the accent allowed to be genuinely loud
+because on carbon it is the only thing making noise.
+
+**Each theme has its own signature, and both are picked by hand.** Light is
+`#185234`, a deep evergreen — the tier block is that colour with cream set on
+it. Dark is `#ffff4a`, a pit-lane yellow — the same block inverted, near-black
+on electric. The fill is dark on cream and bright on carbon because that is what
+each ground wants; what stays constant is that it is the loudest thing on the
+page and nothing else uses it.
+
+Four tokens carry it: `--theme` is the fill, `--on-theme` the ink that sits on
+it, `--theme-ink` the version that works as *text* on the ground (evergreen on
+cream, yellow on carbon), and `--band-tier` the opaque tint behind a tier —
+opaque because the band is sticky, and a translucent one would show the rows
+sliding underneath it.
+
+Those two are written into `palette.mjs` as hex and used verbatim. Everything
+the system derives goes through OKLCH; a colour a person chose does not, because
+round-tripping `#185234` through a perceptual space and back moves it a channel
+or two, and the whole reason someone hands you a hex is that they mean that one.
+The audit still checks both alike.
+
+An evergreen ink means three greens have to coexist: the ink at almost no
+chroma, a saturated `ahead`, and RB. RB moved to teal to keep out of their way,
+and the tags walked around the wheel behind it. Ink is never `#000` — pure black
+on cream is a hole in the page.
+
+The browser's `theme-color` is read back out of `--ground` at runtime rather
+than repeated as a hex in JS. A second copy of a generated value is a copy that
+goes stale the first time anyone regenerates it, which is exactly what happened
+the first time the grounds changed.
+
+## Design rules
+
+Three rules, written down because each one was being broken in eight or nine
+places before it was stated.
+
+**Capitalization says what a thing is.** Uppercase, tracked, 10px is *signage* —
+text you locate and never read: a column head, a group label, `TIER`. Sentence
+case at 11px is *language* — anything that is a phrase you read before acting on
+it, which is every button. A toolbar where eleven controls all shout has no
+emphasis left to give the one that matters.
+
+**The lean, not the taper.** The old signature clipped a triangle off each
+bottom corner. It gave the angle but paid for it in four hard points per element
+and forbade any radius, because a clip-path cuts straight through a
+border-radius. `.lean` gets the same motion from a transform instead: the box
+tilts nine degrees, the corners stay round, nothing is cut — a racing number,
+which is set on a slant because the slant reads as motion before you have read
+the number. The content leans with it: an earlier version counter-skewed the
+text back upright, which meant the shape was italic and the number inside it was
+not, a racing number that had been straightened. One transform carries both now,
+so a rank pill is a true oblique. `.italic-lean` puts the same angle on type
+that has no block behind it — a tier's name beside its number, the wordmark
+beside its mark — so the two read as one idea rather than two slants. Corners run on three radii and no more (`--r-sm/md/lg`), so a button and
+the sheet it sits on are the same family at different sizes.
+
+**Tiers wear the theme colour.** The number block is the theme fill with
+`--on-theme` on it, the band is a tint of it, the rule above it is the theme
+itself, and the tier's name is `--theme-ink`, leaning on the same angle as the
+number beside it. It is the loudest thing on the board, which is right: a cliff in
+value is the most important fact it has to tell you.
+
+**Tiers are drawn as depth, and depth is size.** A cliff in value is the most
+important thing on the board and it was being said by a thin grey strip. Three
+things now step together down `TIER_DEPTH`, and none of them is a shadow or a
+gradient: the tier block gets smaller, it stands less proud of its own band, and
+the rule above the band gets thinner, and the band's tint fades toward the sheet.
+Near tiers read as heavier objects sitting closer to you; far ones as marks lying
+flat on the page. It costs *less* height
+than the old uniform band, not more — only the top tier is large, the rest shrink
+past where the band used to sit, and the block's negative margin lets it break
+the band's edge without adding to it. Five steps and then a floor: past tier six
+the differences stop being legible and another step would only make the text
+small.
+
+**Icons are drawn, not borrowed.** Eighteen symbols used to be Unicode
+characters set in Montserrat — `✕ ⋯ ⠿ ⚠ ✎ ⛓ ☾ ↕` — and a text glyph is drawn to
+a type designer's brief, not ours: different optical weights, different
+baselines, different shapes per platform. `src/icons.jsx` is one 16-unit grid,
+1.5 stroke, round caps, `currentColor`. Two are filled rather than stroked, and
+deliberately: `Caret` and `Dot` are data, not chrome, and need the same weight
+as the number beside them.
+
+**The page is paper; the board is the sheet on it.** `--ground` and `--panel`
+were both pure white, which is what made the board read as a spreadsheet: with
+the page and the sheet the same colour there is no figure and no ground, only
+rules floating on nothing. The page is a warm grey now and the board is a white
+sheet lying on it, and that one separation is what let the rules come out — the
+edge of the sheet does the work a hairline under every row was doing. Ink is not
+`#000` either; pure black on paper is a hole in the page and at 11px it blooms.
+
+The density switch finally earns its name. **Full** is the view you browse and
+think in, so it breathes: 14 columns on a 1170px sheet, no rule under any row,
+tier bands as the only horizontal structure. **Draft day** is the one where two
+more players on screen beats everything else, so rows tighten, the measure drops
+to 820px, and the tools band starts collapsed — tags, tiers and the lens are
+prep-time controls, not things you touch on the clock.
+
+Numbers are right-aligned and their headers with them, so the units sit under
+the units — which is the only reason a mono face was worth loading. Names, ranks
+and `Cons` stay left; they are labels and chips, not quantities.
 
 ## Using it
 
@@ -57,12 +194,31 @@ a provider being down costs you that column and nothing else. There is no file t
 download and nothing to run in a terminal.
 
 **Board** — drag rows (or `[` `]` / shift+↑↓) to build your order, 1–5 to tag,
-`/` to search, Enter for the detail panel. `#` is overall rank and `Pos#` is rank
-within position, both in *your* order.
+`/` to search, Enter for the detail panel, `?` for every key at once. `#` is
+overall rank and `Pos#` is rank within position, both in *your* order.
 
-A strip above the toolbar says how old the board is — *updated today* in green,
-a day count in amber, `STALE` in red past a week — names the newest source, and
-offers **Refresh**, which re-runs the same full pull as *Load everything*.
+The command bar above the list is three bands, in the order you ask the
+questions:
+
+1. **How fresh is this** — *updated today* in green, a day count in amber,
+   `STALE` in red past a week — the newest source, and **Refresh**, which
+   re-runs the same full pull as *Load everything*.
+2. **Which players** — search, the position strip, how many are showing out of
+   how many you have, and the Full / Draft day density switch. The position
+   strip leads with **All** and each segment keeps a hairline of its own
+   position colour, so it doubles as the key for the rail beside every name.
+3. **What am I doing to them** — the View lens and the consensus overlay (two
+   answers to one question, so they sit together), the tag filters, and the tier
+   tools. Below 1024px this band is collapsed behind **Tools**, which carries a
+   dot when a filter inside it is on; the chrome above the first player costs a
+   fifth of a phone screen rather than a third.
+
+`⋯` at the end of the second band holds the keyboard sheet and *reset order to
+consensus*, which replaces your whole order and therefore asks first — it used
+to sit in the toolbar drawn exactly like a position filter.
+
+Filtering to nothing is an answerable state: the board names the filters that
+are on and offers to drop them, rather than showing an empty table.
 
 `#` and `Cons` are the two numbers the table exists to compare, so they carry
 chip weight while the other columns stay plain. Next to `#` is your rank minus
@@ -80,7 +236,9 @@ picks. Full is the prep view. The choice persists across reloads.
 The **View** picker is a lens: switch it to ESPN, Sleeper, consensus or any other
 source and the board re-sorts through that source's eyes, with ▲▼ on every row
 showing how far the player moves from where you have him. Dragging and tiers
-pause while a lens is on.
+pause while a lens is on, and the tools band says so in place of the tools it
+has paused — the lens notice costs the same height as the band it replaces
+rather than adding a line to the sticky chrome.
 
 **Consensus overlay** is the non-destructive version of that, and is a separate
 toggle rather than a lens setting: the board stays in your order with dragging
@@ -89,10 +247,12 @@ rank that player among the same rows. The lens answers "what does ESPN's board
 look like"; the overlay answers "where does the room disagree with mine", without
 taking my list away to do it. It also persists across reloads.
 
-Tiers work like the divider stick at a checkout belt: drag **⠿ drag divider**
-onto a player to cut above him, drag a bar to move it, type in the bar to name
-the tier, `✕` pulls it out. Tiers belong to the view you cut them in — filter to
-RB and you are editing RB tiers.
+Tiers work like the divider stick at a checkout belt: drag the **⠿** handle in
+the Tiers group onto a player to cut above him, drag a bar to move it, type in
+the bar to name the tier, `✕` pulls it out. Tier bands stay pinned under the
+column head as you scroll, so you always know which tier you are reading. Tiers
+belong to the view you cut them in — filter to RB and you are editing RB tiers,
+which is what the scope on the Tiers group is telling you.
 
 **Compare** — every source as a column, sorted by disagreement. Green means a
 site ranks him later than you (you can wait), red means they are higher (you

@@ -4,14 +4,15 @@ import { rowsFromCSV, rowsFromJSON, parseCSV, mapHeaders, parsePastedList, normT
 import { computeBoard } from "./compute.js";
 import Onboard from "./onboard.jsx";
 import { useDataSync } from "./useDataSync.js";
+import { Close, Check } from "./icons.jsx";
 
 const card = "border border-line bg-panel p-3 md:p-4";
 const h2 = "label-lg text-ink";
 // Primary action is the ink block, not a coloured pill: on a white ground the
 // strongest thing available is solid black, and it keeps the accent reserved
 // for the one meaning it carries everywhere else — this is mine.
-const btn = "taper bg-ink px-4 py-2 text-[11px] font-semibold uppercase tracking-label text-ink-invert transition-opacity hover:opacity-80 disabled:opacity-30";
-const btn2 = "taper border border-line px-3 py-2 text-[11px] font-semibold uppercase tracking-label text-ink-muted transition-colors hover:border-ink hover:text-ink disabled:opacity-40";
+const btn = "rounded-[--r-sm] bg-ink px-4 py-2 text-[11px] font-semibold text-ink-invert transition-opacity hover:opacity-90 disabled:opacity-40";
+const btn2 = "ctl px-3 py-2";
 const input = "border border-line bg-ground px-2 py-1 text-sm";
 
 // Each source type reads differently at a glance: a ranking is an opinion, ADP
@@ -127,7 +128,7 @@ export function DataView() {
                   title={eligible ? "Count this source toward Cons" : "Projections never feed Cons"}
                   onChange={(e) => dispatch({ type: "SET_SOURCE_CONSENSUS", id: s.id, on: e.target.checked })}
                   className="h-3.5 w-3.5 shrink-0 accent-accent disabled:opacity-30" />
-                <span className={`taper border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-label ${SRC_BADGE[s.type] || SRC_BADGE.adp}`}>{s.type}</span>
+                <span className={`border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-label ${SRC_BADGE[s.type] || SRC_BADGE.adp}`}>{s.type}</span>
                 <span className={`font-medium ${on || !eligible ? "" : "text-ink-faint line-through decoration-line-strong"}`}>{s.name}</span>
                 <span className="text-xs text-ink-faint">{Object.keys(s.map).length} players · {new Date(s.date).toLocaleDateString()}</span>
                 {daysAgo(s.date) > 7 && <span className="rounded bg-warn/20 px-1.5 py-0.5 text-[10px] font-bold text-warn">STALE · {daysAgo(s.date)}d</span>}
@@ -164,7 +165,7 @@ export function DataView() {
           <label className="text-xs text-ink-muted">
             or load CSV: <input type="file" accept=".csv" className="text-xs" onChange={(e) => e.target.files[0] && loadStatsFile(e.target.files[0], lastSeason)} />
           </label>
-          {state.nflSeason && <span className="text-xs text-ahead">✓ {state.nflSeason} loaded</span>}
+          {state.nflSeason && <span className="inline-flex items-center gap-1 text-xs text-ahead"><Check size={12} /> {state.nflSeason} loaded</span>}
         </div>
         <div className="mt-2 flex flex-wrap items-center gap-2">
           <button className={btn2} onClick={() => syncProjections(thisSeason)} disabled={busy === "proj"}>
@@ -356,7 +357,7 @@ export function HistoryView() {
                         onClick={() => { const l = prompt("Name this version"); if (l) dispatch({ type: "RENAME_VERSION", id: v.id, label: l }); }}>Keep</button>
                     )}
                     <button title="Delete this version" className="rounded px-1 text-xs text-ink-ghost hover:text-behind"
-                      onClick={() => dispatch({ type: "DELETE_VERSION", id: v.id })}>✕</button>
+                      onClick={() => dispatch({ type: "DELETE_VERSION", id: v.id })} aria-label="Delete this version"><Close size={12} /></button>
                   </>
                 )}
               </div>
@@ -521,7 +522,7 @@ export function SettingsView() {
             <div key={t.id} className="flex gap-2">
               <input value={t.name} onChange={(e) => setTemplate(i, { name: e.target.value })} className={`${input} w-40`} />
               <input value={t.url} onChange={(e) => setTemplate(i, { url: e.target.value })} className={`${input} flex-1 font-mono text-xs`} />
-              <button className="text-xs text-behind" onClick={() => dispatch({ type: "SET_SETTINGS", patch: { newsTemplates: state.settings.newsTemplates.filter((_, j) => j !== i) } })}>✕</button>
+              <button className="text-xs text-behind" onClick={() => dispatch({ type: "SET_SETTINGS", patch: { newsTemplates: state.settings.newsTemplates.filter((_, j) => j !== i) } })} aria-label="Remove"><Close size={12} /></button>
             </div>
           ))}
         </div>
@@ -542,7 +543,7 @@ export function SettingsView() {
               <div key={i} className="flex gap-2">
                 <input value={b.name} onChange={(e) => setBeats(beats.map((x, j) => j === i ? { ...x, name: e.target.value } : x))} className={`${input} w-40`} />
                 <input value={b.url} onChange={(e) => setBeats(beats.map((x, j) => j === i ? { ...x, url: e.target.value } : x))} className={`${input} flex-1 font-mono text-xs`} />
-                <button className="text-xs text-behind" onClick={() => setBeats(beats.filter((_, j) => j !== i))}>✕</button>
+                <button className="text-xs text-behind" onClick={() => setBeats(beats.filter((_, j) => j !== i))} aria-label="Remove"><Close size={12} /></button>
               </div>
             ))}
           </div>

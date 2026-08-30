@@ -56,7 +56,11 @@ export default function CompareView() {
   const th = "px-2 py-1 text-left text-[11px] font-medium uppercase tracking-wide text-ink-faint";
   const sortBtn = (key, label, title) => (
     <button title={title} onClick={() => setSortKey(key)}
-      className={sortKey === key ? "text-accent" : "hover:text-ink"}>{label}{sortKey === key ? " ↓" : ""}</button>
+      className={`group/sort inline-flex items-center gap-1 ${sortKey === key ? "text-accent" : "hover:text-ink"}`}>
+      {label}
+      <Sort active={sortKey === key} size={11}
+        className={sortKey === key ? "" : "text-ink-ghost opacity-0 transition-opacity group-hover/sort:opacity-100"} />
+    </button>
   );
 
   return (
